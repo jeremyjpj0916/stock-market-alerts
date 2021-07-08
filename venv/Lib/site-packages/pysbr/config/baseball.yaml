@@ -1,0 +1,57 @@
+spid: 3
+default market id: 83
+consensus market ids:
+  - 83
+  - 401
+  - 402
+
+markets:
+  - alias: ''
+    marketTypes:
+      - alias: Money Lines
+        mtid: 83
+        nam: 2way (Including OT)
+        url: money-line
+      - alias: Totals
+        mtid: 402
+        nam: American Total (Including OT)
+        url: totals
+      - alias: Run Lines
+        mtid: 401
+        nam: Point Spread (Including OT)
+        url: pointspread
+    mtgid: 161
+    nam: Full Game
+    url: full-game
+    periods: 0
+  - alias: 1st 5
+    marketTypes:
+      - alias: Money Lines
+        mtid: 91
+        nam: 1st Half - Draw No Bet
+        url: money-line
+      - alias: Point Spread
+        mtid: 397
+        nam: 1st Half - Point Spread
+        url: pointspread
+      - alias: Totals
+        mtid: 398
+        nam: 1st Half - American Total
+        url: totals
+    mtgid: 162
+    nam: First Half
+    url: 1st-half
+    periods: [1, 6]
+  - alias: Futures
+    marketTypes:
+      - alias: Player Outrights
+        mtid: 725
+        nam: Player Outrights
+        url: player-specials
+      - alias: ''
+        mtid: 311
+        nam: To Win Outright
+        url: to-win-outright
+    mtgid: 168
+    nam: Futures
+    url: futures

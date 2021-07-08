@@ -1,0 +1,45 @@
+fg: full-game
+1h: 1st-half
+2h: 2nd-half
+1q: 1st-quarter
+2q: 2nd-quarter
+3q: 3rd-quarter
+4q: 4th-quarter
+fut: futures
+1p: 1st-quarter
+2p: 2nd-quarter
+3p: 3rd-quarter
+
+ps: pointspread
+ml: money-line
+tot: totals
+ou: totals
+
+first: 1st
+second: 2nd
+third: 3rd
+fourth: 4th
+
+first-half: 1st-half
+second-half: 2nd-half
+
+first-quarter: 1st-quarter
+second-quarter: 2nd-quarter
+third-quarter: 3rd-quarter
+fourth-quarter: 4th-quarter
+
+# spaces don't work with the way I'm translating currently
+# first half: 1st-half
+# second half: 2nd-half
+
+# first quarter: 1st-quarter
+# second quarter: 2nd-quarter
+# third quarter: 3rd-quarter
+# fourth quarter: 4th-quarter
+
+total: totals
+over/under: totals
+o/u: totals
+moneyline: money-line
+# point spread: pointspread
+spread: pointspread

@@ -1,0 +1,221 @@
+# alias is not from SBR, I named them
+sportsbooks:
+  # - sbid: 1157
+  #   paid: 63
+  #   nam: 10Bet
+  #   alias: 10Bet
+
+  # - sbid: 1625
+  #   paid: 66
+  #   nam: 1Vice
+  #   alias: 1Vice
+
+  - sbid: 19
+    paid: 3
+    nam: 5Dimes
+    alias: 5Dimes
+
+  #   - sbid: 1439
+  #     paid: 40
+  #     nam: 888Sport
+  #     alias: 888Sport
+
+  - sbid: 43
+    paid: 5
+    nam: Bet365
+    alias: Bet365
+
+  - sbid: 118
+    paid: 10
+    nam: betcris
+    alias: betcris
+
+  #   - sbid: 45
+  #     paid: 74
+  #     nam: BetAtHome
+  #     alias: BetAtHome
+
+  # - sbid: 1601
+  #   paid: 75
+  #   nam: BetClic
+  #   alias: BetClic
+
+  # - sbid: 1279
+  #   paid: 86
+  #   nam: BetFred
+  #   alias: BetFred
+
+  - sbid: 1252
+    paid: 83
+    nam: BetMania
+    alias: BetMania
+
+  - sbid: 1096
+    paid: 8
+    nam: BetOnline
+    alias: BetOnline
+
+  - sbid: 1389
+    paid: 28
+    nam: BetPhoenix
+    alias: BetPhoenix
+
+  - sbid: 1740
+    paid: 108
+    nam: BetRegal
+    alias: BetRegal
+
+  #   - sbid: 1274
+  #     paid: 71
+  #     nam: BetWay
+  #     alias: BetWay
+
+  - sbid: 92
+    paid: 9
+    nam: Bodog Sportsbook
+    alias: Bodog
+
+  - sbid: 93
+    paid: 10
+    nam: Bookmaker
+    alias: Bookmaker
+
+  - sbid: 1618
+    paid: 9
+    nam: Bovada
+    alias: Bovada
+
+  - sbid: 1696
+    paid: 93
+    nam: Cloudbet
+    alias: Cloudbet
+
+  #   - sbid: 394
+  #     paid: 77
+  #     nam: Coral
+  #     alias: Coral
+
+  - sbid: 1602
+    paid: 65
+    nam: GTbets
+    alias: GTbets
+
+  #   - sbid: 1681
+  #     paid: 80
+  #     nam: Guts
+  #     alias: Guts
+
+  - sbid: 169
+    paid: 44
+    nam: Heritage Sports
+    alias: Heritage
+
+  - sbid: 180
+    paid: 29
+    nam: Intertops
+    alias: Intertops
+
+  #   - sbid: 182
+  #     paid: 73
+  #     nam: Interwetten
+  #     alias: Interwetten
+
+  - sbid: 186
+    paid: 15
+    nam: JazzSports
+    alias: JazzSports
+
+  - sbid: 1275
+    paid: 16
+    nam: JustBet
+    alias: JustBet
+
+  #   - sbid: 192
+  #     paid: 43
+  #     nam: Ladbrokes
+  #     alias: Ladbrokes
+
+  - sbid: 626
+    paid: 18
+    nam: Matchbook
+    alias: Matchbook
+
+  - sbid: 1680
+    paid: 82
+    nam: MyBookie
+    alias: MyBookie
+
+  - sbid: 238
+    paid: 20
+    nam: Pinnacle
+    alias: Pinnacle
+
+  #   - sbid: 1611
+  #     paid: 52
+  #     nam: SBOBet
+  #     alias: SBOBet
+
+  - sbid: 274
+    paid: 84
+    nam: Skybook
+    alias: Skybook
+
+  - sbid: 279
+    paid: 3
+    nam: Sportbet
+    alias: Sportbet
+
+  # - sbid: 283
+  #   paid: 68
+  #   nam: SportingBet
+  #   alias: SportingBet
+
+  - sbid: 289
+    paid: 8
+    nam: SportsBetting
+    alias: SportsBetting
+
+  - sbid: 300
+    paid: 35
+    nam: Sports Interaction
+    alias: SportsInteraction
+
+  #   - sbid: 1137
+  #     paid: 81
+  #     nam: StanJames
+  #     alias: StanJames
+
+  #   - sbid: 227
+  #     paid: 22
+  #     nam: The Greek Sportsbook
+  #     alias: The Greek
+
+  #   - sbid: 1567
+  #     paid: 57
+  #     nam: TitanBet
+  #     alias: TitanBet
+
+  #   - sbid: 1459
+  #     paid: 76
+  #     nam: Unibet
+  #     alias: Unibet
+
+  - sbid: 414
+    paid: 54
+    nam: WagerWeb
+    alias: WagerWeb
+
+  #   - sbid: 349
+  #     paid: 36
+  #     nam: William Hill
+  #     alias: William Hill
+
+  # - sbid: 1673
+  #   paid: 69
+  #   nam: Winner.com
+  #   alias: Winner.com
+
+  - sbid: 139
+    paid: 38
+    nam: YouWager
+    alias: YouWager
