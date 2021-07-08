@@ -7,3 +7,5 @@ Script will use yahoo api via lib, and SMS texts via a lib to help keep you in t
 2. Alert will SMS text you the ticker and current seen price and the % moveement it saw at the time of alert/query.
 
 This code should just run in the background on your computer making the checks.
+
+Note, for text from gmail functionality to work, enable the "allow less secure apps" login feature tied to your gmail account. Maybe use a spare gmail if you have security concerns.
