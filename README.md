@@ -1,4 +1,4 @@
-### Hoping to solve pre/post/regular market hours alerts on big stock volatility(indicating a catalyst has occured).
+### Hoping to solve pre/post/regular market hours alerts on big stock moves(indicating a catalyst has occured).
 
 
 Script will use yahoo api via lib, and SMS texts via a lib to help keep you in the know for when a big move happens(FDA Approval/Deny, Data good/bad for biotech plays).
