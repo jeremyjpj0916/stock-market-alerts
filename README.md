@@ -10,7 +10,7 @@ This code should just run in the background on your computer making the checks.
 
 Note, for text from gmail functionality to work, enable the "allow less secure apps" login feature tied to your gmail account. Maybe use a spare gmail if you have security concerns.
 
-Notes on API Rate limit limitations:
+Notes on Yahoo API Rate limit limitations:
 
 > Rate Limitation
 > There’re some limitations by making the call to Yahoo Finance API:
