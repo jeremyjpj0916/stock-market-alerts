@@ -16,3 +16,50 @@ Notes on Yahoo API Rate limit limitations:
 > There’re some limitations by making the call to Yahoo Finance API:
 > Using the Public API (without authentication), you are limited to 2,000 requests per hour per IP (or up to a total of 48,000 requests a day).
 > I’m not sure it’s precisely for Financial data. But please use time.sleep(1) to avoid your IP getting blocked.
+
+
+Sample data the yahoo api gives us:
+```json
+   {
+     'ardx': {
+     'maxAge': 1, 
+     'preMarketChangePercent': -0.0012641911, 
+     'preMarketChange': -0.009999752, 
+     'preMarketTime': '2021-07-08 04:28:52', 
+     'preMarketPrice': 7.9, 
+     'preMarketSource': 'FREE_REALTIME', 
+     'postMarketChangePercent': 0.0012642514, 
+     'postMarketChange': 0.010000229, 
+     'postMarketTime': 1625700530, 
+     'postMarketPrice': 7.92, 
+     'postMarketSource': 'DELAYED', 
+     'regularMarketChangePercent': -0.031823773, 
+     'regularMarketChange': -0.26000023, 
+     'regularMarketTime': '2021-07-07 16:00:03', 
+     'priceHint': 2, 
+     'regularMarketPrice': 7.91, 
+     'regularMarketDayHigh': 8.23, 
+     'regularMarketDayLow': 7.865, 
+     'regularMarketVolume': 1630126, 
+     'regularMarketPreviousClose': 8.17, 
+     'regularMarketSource': 'FREE_REALTIME', 
+     'regularMarketOpen': 8.17, 
+     'exchange': 'NMS', 
+     'exchangeName': 'NasdaqGS', 
+     'exchangeDataDelayedBy': 0, 
+     'marketState': 'PRE', 
+     'quoteType': 'EQUITY', 
+     'symbol': 'ARDX', 
+     'underlyingSymbol': None, 
+     'shortName': 'Ardelyx, Inc.', 
+     'longName': 'Ardelyx, Inc.', 
+     'currency': 'USD', 
+     'quoteSourceName': 'Nasdaq Real Time Price', 
+     'currencySymbol': '$', 
+     'fromCurrency': None, 
+     'toCurrency': None, 
+     'lastMarket': None, 
+     'marketCap': 786726976
+     }
+   }
+```
