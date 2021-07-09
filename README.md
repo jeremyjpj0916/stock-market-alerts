@@ -19,10 +19,10 @@ SMS + GMAIL Details:
     _password = "XXXXXXX"<br />
 
 Your stocks to watch(5 maximum to prevent IP ban by yahoo):
-> tickerList
+> tickerList = ["ardx", "infi"]
 
 Alert threshold % in decimal format(Currently defaulted to 10%):
-> alert_threshold_percent
+> alert_threshold_percent = .10
 
 <br />
 <br />
