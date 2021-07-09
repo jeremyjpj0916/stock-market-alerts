@@ -70,7 +70,8 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
         if not company.alerted_already:  # Have not alerted on ticker at runtime yet? Then check.
             company_stock = company.stock_ticker
             yahoo_stock_price_details = Ticker(company_stock).price
-            if market_phase == "pre":
+            print(yahoo_stock_price_details)
+            if market_phase == "pre" and "preMarketChangePercent" in yahoo_stock_price_details[company_stock]:
                 # Ex: -0.0012641911 / 0.0012641911
                 pre_market_change_percent = yahoo_stock_price_details[company_stock]["preMarketChangePercent"]
                 if pre_market_change_percent >= change_percent_threshold:
@@ -81,7 +82,7 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
                     send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
                         yahoo_stock_price_details[company_stock]["preMarketPrice"]))
                     company.alerted_already = True
-            elif market_phase == "regular":
+            elif market_phase == "regular" and "regularMarketChangePercent" in yahoo_stock_price_details[company_stock]:
                 # Ex: -0.0012641911 / 0.0012641911
                 regular_market_change_percent = yahoo_stock_price_details[company_stock]["regularMarketChangePercent"]
                 if regular_market_change_percent >= change_percent_threshold:
@@ -92,7 +93,7 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
                     send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
                         yahoo_stock_price_details[company_stock]["regularMarketPrice"]))
                     company.alerted_already = True
-            elif market_phase == "post":
+            elif market_phase == "post" and "postMarketChangePercent" in yahoo_stock_price_details[company_stock]:
                 # Ex: -0.0012641911 / 0.0012641911
                 post_market_change_percent = yahoo_stock_price_details[company_stock]["postMarketChangePercent"]
                 if post_market_change_percent >= change_percent_threshold:
