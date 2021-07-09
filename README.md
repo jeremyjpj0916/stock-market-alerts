@@ -18,7 +18,7 @@ SMS + GMAIL Details:
     _email = "XXXXXXX@gmail.com"
     _password = "XXXXXXX"
 
-Your stocks to watch:
+Your stocks to watch(5 maximum to prevent IP ban by yahoo):
 > tickerList
 
 Alert threshold % in decimal format:
