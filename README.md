@@ -19,7 +19,7 @@ Notes on Yahoo API Rate limit limitations:
 
 
 Sample data the yahoo api gives us:
-```json
+```
    {
      'ardx': {
      'maxAge': 1, 
