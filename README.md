@@ -21,7 +21,7 @@ SMS + GMAIL Details:
 Your stocks to watch(5 maximum to prevent IP ban by yahoo):
 > tickerList
 
-Alert threshold % in decimal format:
+Alert threshold % in decimal format(Currently defaulted to 10%):
 > alert_threshold_percent
 
 
