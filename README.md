@@ -10,6 +10,20 @@ This code should just run in the background on your computer making the checks.
 
 Note, for text from gmail functionality to work, enable the "allow less secure apps" login feature tied to your gmail account. Maybe use a spare gmail if you have security concerns.
 
+<b>Configurable fields within the main.py</b>
+SMS + GMAIL Details:
+
+>    _num = "XXXXXXXXXX"
+    _carrier = "verizon"
+    _email = "XXXXXXX@gmail.com"
+    _password = "XXXXXXX"
+
+Your stocks to watch:
+> tickerList
+
+Alert threshold % in decimal format:
+> alert_threshold_percent
+
 Notes on Yahoo API Rate limit limitations:
 
 > Rate Limitation
