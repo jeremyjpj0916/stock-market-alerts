@@ -10,7 +10,7 @@ This code should just run in the background on your computer making the checks.
 
 Note, for text from gmail functionality to work, enable the "allow less secure apps" login feature tied to your gmail account. Maybe use a spare gmail if you have security concerns.
 
-<b>Configurable fields within the main.py</b><br />
+<b>Configurable fields within the main.py</b><br /><br />
 SMS + GMAIL Details:
 
 >    _num = "XXXXXXXXXX"<br />
