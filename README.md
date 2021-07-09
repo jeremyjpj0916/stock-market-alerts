@@ -24,6 +24,10 @@ Your stocks to watch(5 maximum to prevent IP ban by yahoo):
 Alert threshold % in decimal format:
 > alert_threshold_percent
 
+
+<br />
+<br />
+<br />
 Notes on Yahoo API Rate limit limitations:
 
 > Rate Limitation
