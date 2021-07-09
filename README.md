@@ -13,10 +13,10 @@ Note, for text from gmail functionality to work, enable the "allow less secure a
 <b>Configurable fields within the main.py</b><br />
 SMS + GMAIL Details:
 
->    _num = "XXXXXXXXXX"
-    _carrier = "verizon"
-    _email = "XXXXXXX@gmail.com"
-    _password = "XXXXXXX"
+>    _num = "XXXXXXXXXX"<br />
+    _carrier = "verizon"<br />
+    _email = "XXXXXXX@gmail.com"<br />
+    _password = "XXXXXXX"<br />
 
 Your stocks to watch(5 maximum to prevent IP ban by yahoo):
 > tickerList
