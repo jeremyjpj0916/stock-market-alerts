@@ -18,7 +18,7 @@ Notes on Yahoo API Rate limit limitations:
 > I’m not sure it’s precisely for Financial data. But please use time.sleep(1) to avoid your IP getting blocked.
 
 
-Sample data the yahoo api gives us:
+Sample data the yahoo api gives us(ardx.price):
 ```
    {
      'ardx': {
