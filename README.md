@@ -104,9 +104,9 @@ Sample data the yahoo api gives us(ardx.price):
 ```
 
 <br />
-If you liked this tool and it helped you catch some awesome biotech catalyst moves feel free to donate some of your winnings my way via crypto:
-Bitcoin address: XXXXXXXXXX
-Ethereum address: XXXXXXXXXX
+If you liked this tool and it helped you catch some awesome biotech catalyst moves feel free to donate some of your winnings my way via crypto:<br /><br />
+Bitcoin address: XXXXXXXXXX<br />
+Ethereum address: XXXXXXXXXX<br />
 
 <br />
 Credits of external scripts and libs I used: <br />
