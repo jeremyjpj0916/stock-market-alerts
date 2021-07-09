@@ -24,6 +24,27 @@ Your stocks to watch(5 maximum to prevent IP ban by yahoo):
 Alert threshold % in decimal format(Currently defaulted to 10%):
 > alert_threshold_percent
 
+<br />
+<br />
+<br />
+<b>Tools needed</b><br /><br />
+I recommend running the app if on windows using pycharm, can get free community edition: https://www.jetbrains.com/pycharm/<br />
+Also get latest version of python on your machine: https://www.python.org/downloads/release/python-396/
+
+Be sure to pull in all the required libs for this program to be able to execute:
+```
+import classes
+from datetime import datetime
+import datetime as dt
+import time
+from pytz import timezone
+import asyncio
+import re
+from email.message import EmailMessage
+from typing import Tuple, Union
+from yahooquery import Ticker
+import aiosmtplib
+```
 
 <br />
 <br />
@@ -81,3 +102,13 @@ Sample data the yahoo api gives us(ardx.price):
      }
    }
 ```
+
+<br />
+If you liked this tool and it helped you catch some awesome biotech catalyst moves feel free to donate some of your winnings my way via crypto:
+Bitcoin address: XXXXXXXXXX
+Ethereum address: XXXXXXXXXX
+
+<br />
+Credits of external scripts and libs I used: <br />
+https://github.com/dpguthrie/yahooquery<br />
+https://github.com/acamso/demos/blob/master/_email/send_txt_msg.py<br />
