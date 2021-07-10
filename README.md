@@ -13,7 +13,7 @@ This code should just run in the background on your computer making the checks.
 <b>Configurable fields within the main.py</b><br /><br />
 SMS + GMAIL Details:
 
->    _num = "XXXXXXXXXX"<br />
+>    _num_list = ["XXXXXXXXXX"]<br />
     _carrier = "verizon"<br />
     _email = "XXXXXXX@gmail.com"<br />
     _password = "XXXXXXX"<br />
