@@ -24,6 +24,9 @@ Your stocks to watch(5 maximum to prevent IP ban by yahoo):
 Alert threshold % in decimal format(Currently defaulted to 10%):
 > alert_threshold_percent = .10
 
+You may also need to edit the path to your local python specified here:
+https://github.com/jeremyjpj0916/stock-market-alerts/blob/main/venv/pyvenv.cfg#L1 
+
 <br />
 <br />
 <br />
