@@ -29,7 +29,7 @@ def send_message(_subj, _msg):
     # Alert sending portion config
     _num_list = ["XXXXXXXXXX"]
     _carrier = "verizon"
-    _email = "XXXXXXXX@gmail.com"
+    _email = "XXXXXXXX@live.com"
     _password = "XXXXXXXX"
     # Alert SMS
     for _num in _num_list:
