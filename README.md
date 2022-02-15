@@ -10,12 +10,14 @@ This code should just run in the background on your computer making the checks.
 
 <b>Note, for text from gmail functionality to work, enable the "allow less secure apps" login feature tied to your gmail account.</b> Maybe use a spare gmail if you have security concerns.
 
+NOTE: I have updated the default mailserver to be for hotmail/live/outlook Microsoft owned emails due to Verizons rate limits placed on GMAIL SMTP servers.
+
 <b>Configurable fields within the main.py</b><br /><br />
-SMS + GMAIL Details:
+SMS + EMAIL Details:
 
 >    _num_list = ["XXXXXXXXXX"]<br />
     _carrier = "verizon"<br />
-    _email = "XXXXXXX@gmail.com"<br />
+    _email = "XXXXXXX@live.com"<br />
     _password = "XXXXXXX"<br />
 
 Your stocks to watch(5 maximum to prevent IP ban by yahoo):
