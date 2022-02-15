@@ -11,7 +11,8 @@ from yahooquery import Ticker
 import aiosmtplib
 
 # Email script from https://github.com/acamso/demos/blob/master/_email/send_txt_msg.py
-HOST = "smtp.gmail.com"
+#HOST = "smtp.gmail.com"
+HOST = "smtp.office365.com"
 
 CARRIER_MAP = {
     "verizon": "vtext.com",
