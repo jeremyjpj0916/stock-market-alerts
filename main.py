@@ -16,6 +16,7 @@ HOST = "smtp.office365.com"
 
 CARRIER_MAP = {
     "verizon": "vtext.com",
+    "verizon_pics": "vzwpix.com",
     "tmobile": "tmomail.net",
     "sprint": "messaging.sprintpcs.com",
     "at&t": "txt.att.net",
