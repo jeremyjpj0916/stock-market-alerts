@@ -60,6 +60,7 @@ Notes on Yahoo API Rate limit limitations:
 > There’re some limitations by making the call to Yahoo Finance API:
 > Using the Public API (without authentication), you are limited to 2,000 requests per hour per IP (or up to a total of 48,000 requests a day).
 > I’m not sure it’s precisely for Financial data. But please use time.sleep(1) to avoid your IP getting blocked.
+> If you authenticate with API Key then you get 100,000 requests a day
 
 
 Sample data the yahoo api gives us(ardx.price):
@@ -107,11 +108,6 @@ Sample data the yahoo api gives us(ardx.price):
      }
    }
 ```
-
-<br />
-If you liked this tool and it helped you catch some awesome biotech catalyst moves feel free to donate some of your winnings my way via crypto:<br /><br />
-Bitcoin address: 3PBy9SMFgDi57oSrkcPbodT4Dy6VZosT7m<br />
-Ethereum address: 0xF6c3cF3c5795A2e3430e0fF99334704ffF7bB361<br />
 
 <br />
 Credits of external scripts and libs I used: <br />
