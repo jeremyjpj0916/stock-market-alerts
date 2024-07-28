@@ -26,8 +26,12 @@ python main.py \
   --yahoo_api_key apikeyhere
 ```
 
-You may also need to edit the path to your local python specified here:
-https://github.com/jeremyjpj0916/stock-market-alerts/blob/main/venv/pyvenv.cfg#L1 
+Or better yet just fork this repo and setup proper github secrets and the github action ```cron.yml``` included in this repo will run Market hours 4am EST to 8pm EST(pre and regular and post market) to alert
+you on any stock moves. Secrets look like so when setup:
+
+![image](https://github.com/user-attachments/assets/babe896d-7121-4d88-8e02-e1ec98140f8a)
+
+
 
 <br />
 <br />
