@@ -1,0 +1,2 @@
+yahooquery==0.1.9
+requests==2.28.1
