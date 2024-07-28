@@ -9,10 +9,36 @@ from email.message import EmailMessage
 from typing import Tuple, Union
 from yahooquery import Ticker
 import aiosmtplib
+import argparse
+
+# Define command-line arguments
+parser = argparse.ArgumentParser(description='Stock Market Alerts')
+parser.add_argument('--stock_symbols', nargs='+', required=True, help='List of stock symbols MSFT AAPL GOOG')
+parser.add_argument('--percent_change_threshold', type=float, required=True, help='Alert threshold for percent change: .10 etc.')
+parser.add_argument('--sender_email', required=True, help='Sender email address')
+parser.add_argument('--sender_email_host', required=True, help='Sender email hostname ex: smtp.office365.com')
+parser.add_argument('--sender_email_host_port', type=int, required=True, help='Sender email hostname port: 587')
+parser.add_argument('--sender_email_password', required=True, help='Sender email password')
+parser.add_argument('--carrier', required=True, help='verison||verizon_pics||tmobile||sprint||at&t||boost||cricket||uscellular')
+parser.add_argument('--phone_numbers', nargs='+', required=True, help='List of Phone #s to recieve the text')
+parser.add_argument('--yahoo_api_key', required=True, help='Yahoo finance API Key from financeapi.net')
+
+# Parse command-line arguments
+args = parser.parse_args()
+
+# Use the dynamic arguments in your script
+stock_symbols = args.stock_symbols
+percent_change_threshold = args.percent_change_threshold
+sender_email = args.sender_email
+sender_email_host = args.sender_email_host
+sender_email_host_port = args.sender_email_host_port
+sender_email_password = args.sender_email_password
+carrier = args.carrier
+phone_numbers = args.phone_numbers
+yahoo_api_key = args.yahoo_api_key
+
 
 # Email script from https://github.com/acamso/demos/blob/master/_email/send_txt_msg.py
-#HOST = "smtp.gmail.com"
-HOST = "smtp.office365.com"
 
 CARRIER_MAP = {
     "verizon": "vtext.com",
@@ -28,10 +54,10 @@ CARRIER_MAP = {
 
 def send_message(_subj, _msg):
     # Alert sending portion config
-    _num_list = ["XXXXXXXXXX"]
-    _carrier = "verizon"
-    _email = "XXXXXXXX@live.com"
-    _password = "XXXXXXXX"
+    _num_list = phone_numbers
+    _carrier = carrier
+    _email = sender_email
+    _password = sender_email_password
     # Alert SMS
     for _num in _num_list:
         coro = send_txt(_num, _carrier, _email, _password, _msg, _subj)
@@ -54,7 +80,7 @@ async def send_txt(
     message.set_content(msg)
 
     # send
-    send_kws = dict(username=email, password=password, hostname=HOST, port=587, start_tls=True)
+    send_kws = dict(username=email, password=password, hostname=sender_email_host, port=sender_email_host_port, start_tls=True)
     res = await aiosmtplib.send(message, **send_kws)  # type: ignore
     msg = "failed" if not re.search(r"\sOK\s", res[1]) else "succeeded"
     print(msg)
@@ -74,7 +100,7 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
     for company in watch_list:
         if not company.alerted_already:  # Have not alerted on ticker at runtime yet? Then check.
             company_stock = company.stock_ticker
-            yahoo_stock_price_details = Ticker(company_stock).price
+            yahoo_stock_price_details = Ticker(company_stock, api_key=yahoo_api_key).price
             print(yahoo_stock_price_details)
             if market_phase == "pre" and "preMarketChangePercent" in yahoo_stock_price_details[company_stock]:
                 # Ex: -0.0012641911 / 0.0012641911
@@ -117,10 +143,10 @@ if __name__ == '__main__':
 
     # Make your stock ticker list. Max limit 5 or else we will truncate to first 5(this is to protect you from
     # getting IP banned for too many queries)
-    tickerList = ["ardx", "infi"]
+    tickerList = stock_symbols
 
     # Alert threshold % (.10 for 10% up/down movement, .05 for 5% up/down movement etc.)
-    alert_threshold_percent = .10
+    alert_threshold_percent = percent_change_threshold
 
     if len(tickerList) > 5:
         print("**Ticker list > 5 detected, taking first 5 tickers to monitor! Printing the tickers monitored below:**")

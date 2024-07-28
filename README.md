@@ -1,7 +1,7 @@
 ### Hoping to solve pre/post/regular market hours alerts on big stock moves(indicating a catalyst has occured).
 
 
-Script will use yahoo api via lib, and SMS texts from a GMAIL account via a lib to help keep you in the know for when a big move happens(FDA Approval/Deny, Data good/bad for biotech plays). I personally keep my phone on silent during the day and have overriden that setting when these texts from my emails come to vibrate and alarm like crazy so i won't miss the catalyst(good or bad news)!
+Script will use yahoo api via lib, and SMS texts from a email account via a lib to help keep you in the know for when a big move happens(FDA Approval/Deny, Data good/bad for biotech plays). I personally keep my phone on silent during the day and have overriden that setting when these texts from my emails come to vibrate and alarm like crazy so i won't miss the catalyst(good or bad news)!
 
 1. Compare premarket/postmarket/regular % change >= .10 (10%) movement either way means we need to alert. This can be configurable.
 2. Alert will SMS text you the ticker and current seen price and the % moveement it saw at the time of alert/query.
@@ -12,19 +12,19 @@ This code should just run in the background on your computer making the checks.
 
 <b>NOTE: I have updated the default mailserver to be for hotmail/live/outlook Microsoft owned emails due to Verizons rate limits placed on GMAIL SMTP servers.</b>
 
-<b>Configurable fields within the main.py</b><br /><br />
-SMS + EMAIL Details:
-
->    _num_list = ["XXXXXXXXXX"]<br />
-    _carrier = "verizon"<br />
-    _email = "XXXXXXX@live.com"<br />
-    _password = "XXXXXXX"<br />
-
-Your stocks to watch(5 maximum to prevent IP ban by yahoo):
-> tickerList = ["ardx", "infi"]
-
-Alert threshold % in decimal format(Currently defaulted to 10%):
-> alert_threshold_percent = .10
+How to run the app:
+```bash
+python main.py \
+  --stock_symbols MSFT AAPL GOOG \
+  --percent_change_threshold .10 \
+  --sender_email your_email@example.com \
+  --sender_email_host smtp.office365.com \
+  --sender_email_host_port 587 \
+  --sender_email_password password \
+  --carrier verizon_pics \
+  --phone_numbers 0000000000 1111111111 \
+  --yahoo_api_key apikeyhere
+```
 
 You may also need to edit the path to your local python specified here:
 https://github.com/jeremyjpj0916/stock-market-alerts/blob/main/venv/pyvenv.cfg#L1 
@@ -60,6 +60,7 @@ Notes on Yahoo API Rate limit limitations:
 > There’re some limitations by making the call to Yahoo Finance API:
 > Using the Public API (without authentication), you are limited to 2,000 requests per hour per IP (or up to a total of 48,000 requests a day).
 > I’m not sure it’s precisely for Financial data. But please use time.sleep(1) to avoid your IP getting blocked.
+> If you authenticate with API Key then you get 100,000 requests a day
 
 
 Sample data the yahoo api gives us(ardx.price):
@@ -107,11 +108,6 @@ Sample data the yahoo api gives us(ardx.price):
      }
    }
 ```
-
-<br />
-If you liked this tool and it helped you catch some awesome biotech catalyst moves feel free to donate some of your winnings my way via crypto:<br /><br />
-Bitcoin address: 3PBy9SMFgDi57oSrkcPbodT4Dy6VZosT7m<br />
-Ethereum address: 0xF6c3cF3c5795A2e3430e0fF99334704ffF7bB361<br />
 
 <br />
 Credits of external scripts and libs I used: <br />
