@@ -1,16 +1,11 @@
-### Hoping to solve pre/post/regular market hours alerts on big stock moves(indicating a catalyst has occured).
-
+### Hoping to solve pre/regular/post market hours alerts on big stock moves(indicating a catalyst has occured).
 
 Script will use yahoo api via lib, and SMS texts from a email account via a lib to help keep you in the know for when a big move happens(FDA Approval/Deny, Data good/bad for biotech plays). I personally keep my phone on silent during the day and have overriden that setting when these texts from my emails come to vibrate and alarm like crazy so i won't miss the catalyst(good or bad news)!
 
 1. Compare premarket/postmarket/regular % change >= .10 (10%) movement either way means we need to alert. This can be configurable.
 2. Alert will SMS text you the ticker and current seen price and the % moveement it saw at the time of alert/query.
 
-This code should just run in the background on your computer making the checks.
-
 <b>Note, for text from gmail functionality to work, enable the "allow less secure apps" login feature tied to your gmail account.</b> Maybe use a spare gmail if you have security concerns.</b>
-
-<b>NOTE: I have updated the default mailserver to be for hotmail/live/outlook Microsoft owned emails due to Verizons rate limits placed on GMAIL SMTP servers.</b>
 
 How to run the app:
 ```bash
