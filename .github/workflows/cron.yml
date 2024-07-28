@@ -29,4 +29,4 @@ jobs:
           curl -X POST \
           https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${GITHUB_WORKFLOW}/dispatches \
           -H 'Accept: application/vnd.github.v3+json' \
-          -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'
+          -H 'Authorization: Bearer ${{ secrets.HUB_PAT }}'
