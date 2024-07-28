@@ -12,19 +12,19 @@ This code should just run in the background on your computer making the checks.
 
 <b>NOTE: I have updated the default mailserver to be for hotmail/live/outlook Microsoft owned emails due to Verizons rate limits placed on GMAIL SMTP servers.</b>
 
-<b>Configurable fields within the main.py</b><br /><br />
-SMS + EMAIL Details:
-
->    _num_list = ["XXXXXXXXXX"]<br />
-    _carrier = "verizon"<br />
-    _email = "XXXXXXX@live.com"<br />
-    _password = "XXXXXXX"<br />
-
-Your stocks to watch(5 maximum to prevent IP ban by yahoo):
-> tickerList = ["ardx", "infi"]
-
-Alert threshold % in decimal format(Currently defaulted to 10%):
-> alert_threshold_percent = .10
+How to run the app:
+```bash
+python main.py \
+  --stock_symbols MSFT AAPL GOOG \
+  --percent_change_threshold .10 \
+  --sender_email your_email@example.com \
+  --sender_email_host smtp.office365.com \
+  --sender_email_host_port 587 \
+  --sender_email_password password \
+  --carrier verizon_pics \
+  --phone_numbers 0000000000 1111111111 \
+  --yahoo_api_key apikeyhere
+```
 
 You may also need to edit the path to your local python specified here:
 https://github.com/jeremyjpj0916/stock-market-alerts/blob/main/venv/pyvenv.cfg#L1 
