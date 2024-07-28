@@ -28,6 +28,7 @@ jobs:
         timeout-minutes: 1
       - name: Restart if timed out
         if: ${{ failure() }}
+        continue-on-error: true
         run: |
           echo "Restarting workflow..."
           curl -X POST \
