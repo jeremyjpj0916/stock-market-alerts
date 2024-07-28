@@ -26,7 +26,7 @@ jobs:
           echo "Script launching!"
           python -u main.py --stock_symbols ${{ secrets.stock_symbols }} --percent_change_threshold ${{ secrets.percent_change_threshold }} --sender_email ${{ secrets.sender_email }} --sender_email_host ${{ secrets.sender_email_host }} --sender_email_host_port ${{ secrets.sender_email_host_port }} --sender_email_password ${{ secrets.sender_email_password }} --carrier ${{ secrets.carrier }} --phone_numbers ${{ secrets.phone_numbers }} --yahoo_api_key ${{ secrets.yahoo_api_key }}
         timeout-minutes: 355
-        continue-on-error: true
+        continue-on-error: true # Mark a success even though timeout so action gets marked as success and pip cache can be built(won't be built if job is failed)
       - name: Restart after timed out
         run: |
           echo "Restarting workflow..."
