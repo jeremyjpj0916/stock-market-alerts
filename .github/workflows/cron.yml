@@ -27,9 +27,7 @@ jobs:
           python -u main.py --stock_symbols ${{ secrets.stock_symbols }} --percent_change_threshold ${{ secrets.percent_change_threshold }} --sender_email ${{ secrets.sender_email }} --sender_email_host ${{ secrets.sender_email_host }} --sender_email_host_port ${{ secrets.sender_email_host_port }} --sender_email_password ${{ secrets.sender_email_password }} --carrier ${{ secrets.carrier }} --phone_numbers ${{ secrets.phone_numbers }} --yahoo_api_key ${{ secrets.yahoo_api_key }}
         timeout-minutes: 1
         continue-on-error: true
-      - name: Restart if timed out
-        if: ${{ failure() }}
-        continue-on-error: true
+      - name: Restart after timed out
         run: |
           echo "Restarting workflow..."
           curl -X POST \
@@ -38,4 +36,3 @@ jobs:
           -H 'Authorization: Bearer ${{ secrets.HUB_PAT }}' \
           -H "X-GitHub-Api-Version: 2022-11-28" \
           -d '{"ref":"main"}'
-          exit 0
