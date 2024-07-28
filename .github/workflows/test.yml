@@ -1,0 +1,37 @@
+name: Manual Run of script
+
+# Controls when the workflow will run 
+on:
+# Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ main ]
+
+# Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run script
+        run: |
+          echo "Script launching!"
+          python main.py --stock_symbols ${{ secrets.stock_symbols }} --percent_change_threshold ${{ secrets.percent_change_threshold }} --sender_email ${{ secrets.sender_email }} --sender_email_host ${{ secrets.sender_email_host }} --sender_email_host_port ${{ secrets.sender_email_host_port }} --sender_email_password ${{ secrets.sender_email_password }} --carrier ${{ secrets.carrier }} --phone_numbers ${{ secrets.phone_numbers }} --yahoo_api_key ${{ secrets.yahoo_api_key }}
+        timeout-minutes: 2
+      - name: Restart if timed out
+        if: ${{ failure() }}
+        run: |
+          echo "Restarting workflow..."
+          curl -X POST \
+          https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${GITHUB_WORKFLOW}/dispatches \
+          -H 'Accept: application/vnd.github.v3+json' \
+          -H 'Authorization: Bearer ${{ secrets.HUB_PAT }}'
