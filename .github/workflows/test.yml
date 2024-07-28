@@ -34,4 +34,5 @@ jobs:
           curl -X POST \
           https://api.github.com/repos/jeremyjpj0916/stock-market-alerts/actions/workflows/test/dispatches \
           -H 'Accept: application/vnd.github.v3+json' \
-          -H 'Authorization: Bearer ${{ secrets.HUB_PAT }}'
+          -H 'Authorization: Bearer ${{ secrets.HUB_PAT }}' \
+          -d '{"ref":"main"}'
