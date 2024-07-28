@@ -40,23 +40,6 @@ you on any stock moves. Secrets look like so when setup:
 I recommend running the app if on windows using pycharm, can get free community edition: https://www.jetbrains.com/pycharm/<br />
 Also get latest version of python on your machine: https://www.python.org/downloads/release/python-396/
 
-Be sure to pull in all the required libs for this program to be able to execute:
-```
-import classes
-from datetime import datetime
-import datetime as dt
-import time
-from pytz import timezone
-import asyncio
-import re
-from email.message import EmailMessage
-from typing import Tuple, Union
-from yahooquery import Ticker
-import aiosmtplib
-```
-
-<br />
-<br />
 <br />
 Notes on Yahoo API Rate limit limitations:
 
