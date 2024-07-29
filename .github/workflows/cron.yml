@@ -2,7 +2,7 @@ name: Stock Market Alerts Cron
 
 on:
   schedule:
-    - cron: 0 8 * * 1-5
+    - cron: 0 8 * * 1-5 #4am start Monday to Friday for pre-market hours.
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -29,6 +29,11 @@ jobs:
         continue-on-error: true # Mark a success even though timeout so action gets marked as success and pip cache can be built(won't be built if job is failed)
       - name: Restart after timed out
         run: |
+          TZ='America/New_York' # Set timezone to EST
+          if [ "$(date +%H)" -ge 20 ]; then # Check if hour is 20 (8pm EST) or later
+            echo "Past post market hours, exiting github action loop"
+            exit 0
+          fi
           echo "Restarting workflow..."
           curl -X POST \
           https://api.github.com/repos/jeremyjpj0916/stock-market-alerts/actions/workflows/cron.yml/dispatches \
