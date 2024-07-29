@@ -37,11 +37,16 @@ jobs:
         continue-on-error: true # Mark a success even though timeout so action gets marked as success and pip cache can be built(won't be built if job is failed)
       - name: Restart after timed out
         run: |
-          echo $(date +%H)
-          if [ "$(date +%H)" -ge 23 ]; then # Check if hour is 23 (7pm EST) or later (this bit is odd, still figuring out)
+          # Convert EST to UTC (required for GitHub Actions)
+          EST_TIME=$(date -u -d "8PM EST" +"%H%M")
+          CURRENT_TIME=$(date -u +"%H%M")
+          echo $EST_TIME
+          echo $CURRENT_TIME
+          if [ "$CURRENT_TIME" -ge "$EST_TIME" ]; then
             echo "Past post market hours, exiting github action loop"
             exit 0
           fi
+
           echo "Restarting workflow..."
           curl -X POST \
           https://api.github.com/repos/jeremyjpj0916/stock-market-alerts/actions/workflows/cron.yml/dispatches \
