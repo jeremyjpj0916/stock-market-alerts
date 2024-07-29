@@ -39,7 +39,7 @@ jobs:
         run: |
           CURRENT_TIME=$(date +"%H")
           echo $CURRENT_TIME
-          if [ "$CURRENT_TIME" -ge "$EST_TIME" ]; then
+          if [ "$CURRENT_TIME" -ge 20 ]; then
             echo "Past post market hours, exiting github action loop"
             exit 0
           fi
