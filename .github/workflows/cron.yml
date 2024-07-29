@@ -38,7 +38,7 @@ jobs:
       - name: Restart after timed out
         run: |
           echo $(date +%H)
-          if [ "$(date +%H)" -ge 20 ]; then # Check if hour is 20 (8pm EST) or later
+          if [ "$(date +%H)" -ge 23 ]; then # Check if hour is 23 (7pm EST) or later (this bit is odd, still figuring out)
             echo "Past post market hours, exiting github action loop"
             exit 0
           fi
