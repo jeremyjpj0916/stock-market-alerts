@@ -138,15 +138,6 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
 
 
 if __name__ == '__main__':
-    #Print values of the config on startup that are safe to expose
-    print("stock_symbols : " + str(stock_symbols))
-    print("percent_change_threshold : " + str(percent_change_threshold))
-    print("sender_email : " + str(sender_email))
-    print("sender_email_host : " + str(sender_email_host))
-    print("sender_email_host_port : " + str(sender_email_host_port))
-    print("carrier : " + str(carrier))
-
-    
     # define eastern timezone (will be working in EST timezone w the US stock market data)
     eastern = timezone('US/Eastern')
 
