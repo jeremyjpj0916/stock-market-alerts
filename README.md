@@ -9,7 +9,7 @@ Script will use yahoo api via lib, and SMS texts from a email account via a lib 
 
 How to run the app:
 ```bash
-python main.py \
+python3 main.py \
   --stock_symbols MSFT AAPL GOOG \
   --percent_change_threshold .10 \
   --sender_email your_email@example.com \
