@@ -24,13 +24,19 @@ jobs:
       - name: Print safe config secrets without masking to verify settings
         env:
           ACTIONS_STEP_DEBUG: true
+          stock_symbols: ${{ secrets.stock_symbols }}
+          percent_change_threshold: ${{ secrets.percent_change_threshold }}
+          sender_email: ${{ secrets.sender_email }}
+          sender_email_host: ${{ secrets.sender_email_host }}
+          sender_email_host_port: ${{ secrets.sender_email_host_port }}
+          carrier: ${{ secrets.carrier }}
         run: |
-          echo "::set-output ${{ secrets.stock_symbols }}"
-          echo "::set-output ${{ secrets.percent_change_threshold }}"
-          echo "::set-output ${{ secrets.sender_email }}"
-          echo "::set-output ${{ secrets.sender_email_host }}"
-          echo "::set-output ${{ secrets.sender_email_host_port }}"
-          echo "::set-output ${{ secrets.carrier }}"
+          echo "::set-output name=stock_symbols::${stock_symbols}"
+          echo "::set-output name=percent_change_threshold::${percent_change_threshold}"
+          echo "::set-output name=sender_email::${sender_email}"
+          echo "::set-output name=sender_email_host::${sender_email_host}"
+          echo "::set-output name=sender_email_host_port::${sender_email_host_port}"
+          echo "::set-output name=carrier::${carrier}"          
       - name: Run script
         run: |
           echo "Script launching!"
