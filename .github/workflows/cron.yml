@@ -25,12 +25,12 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
         run: |
-          echo ${{ secrets.stock_symbols }}
-          echo ${{ secrets.percent_change_threshold }}
-          echo ${{ secrets.sender_email }}
-          echo ${{ secrets.sender_email_host }}
-          echo ${{ secrets.sender_email_host_port }}
-          echo ${{ secrets.carrier }}
+          echo "::set-output ${{ secrets.stock_symbols }}"
+          echo "::set-output ${{ secrets.percent_change_threshold }}"
+          echo "::set-output ${{ secrets.sender_email }}"
+          echo "::set-output ${{ secrets.sender_email_host }}"
+          echo "::set-output ${{ secrets.sender_email_host_port }}"
+          echo "::set-output ${{ secrets.carrier }}"
       - name: Run script
         run: |
           echo "Script launching!"
