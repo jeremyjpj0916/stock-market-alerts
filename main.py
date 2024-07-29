@@ -101,7 +101,7 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
         if not company.alerted_already:  # Have not alerted on ticker at runtime yet? Then check.
             company_stock = company.stock_ticker
             yahoo_stock_price_details = Ticker(company_stock, api_key=yahoo_api_key).price
-            print(yahoo_stock_price_details)
+            #print(yahoo_stock_price_details) only used for debugging
             if market_phase == "pre" and "preMarketChangePercent" in yahoo_stock_price_details[company_stock]:
                 # Ex: -0.0012641911 / 0.0012641911
                 pre_market_change_percent = yahoo_stock_price_details[company_stock]["preMarketChangePercent"]
