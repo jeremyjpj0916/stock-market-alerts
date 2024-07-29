@@ -38,6 +38,7 @@ jobs:
       - name: Restart after timed out
         run: |
           TZ='America/New_York' # Set timezone to EST
+          echo $(date +%H)
           if [ "$(date +%H)" -ge 20 ]; then # Check if hour is 20 (8pm EST) or later
             echo "Past post market hours, exiting github action loop"
             exit 0
