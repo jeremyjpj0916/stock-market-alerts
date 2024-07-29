@@ -21,6 +21,16 @@ jobs:
       - name: Install dependencies # This step only runs if requirements.txt dependencies change
         run: |
           pip install -r requirements.txt
+      - name: Print safe config secrets without masking to verify settings
+        env:
+          ACTIONS_STEP_DEBUG: true
+        run: |
+          echo ${{ secrets.stock_symbols }}
+          echo ${{ secrets.percent_change_threshold }}
+          echo ${{ secrets.sender_email }}
+          echo ${{ secrets.sender_email_host }}
+          echo ${{ secrets.sender_email_host_port }}
+          echo ${{ secrets.carrier }}
       - name: Run script
         run: |
           echo "Script launching!"
