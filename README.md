@@ -5,17 +5,17 @@ Script will use yahoo api via lib, and SMS texts from a email account via a lib 
 1. Compare premarket/regular/postmarket % change >= .10 (10%) movement either way means we need to alert.
 2. Alert will SMS text you the ticker and current seen price and the % moveement it saw at the time of alert/query.
 
-<b>Note, for text from gmail functionality to work, enable the "allow less secure apps" login feature tied to your gmail account.</b> Maybe use a spare gmail if you have security concerns.</b>
+<b>Note, for text from gmail functionality to work, you must setup an app password: https://support.google.com/mail/thread/205453566/how-to-generate-an-app-password</b>
 
 How to run the app:
 ```bash
 python3 main.py \
   --stock_symbols MSFT AAPL GOOG \
   --percent_change_threshold .10 \
-  --sender_email your_email@example.com \
-  --sender_email_host smtp.office365.com \
+  --sender_email your_email@gmail.com \
+  --sender_email_host smtp.gmail.com \
   --sender_email_host_port 587 \
-  --sender_email_password password \
+  --sender_email_password "your app password for insecure apps here gmail" \
   --carrier verizon_pics \
   --phone_numbers 0000000000 1111111111 \
   --yahoo_api_key apikeyhere
