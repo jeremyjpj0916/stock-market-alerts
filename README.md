@@ -56,6 +56,7 @@ Notes on Yahoo API Rate limit limitations:
 > I’m not sure it’s precisely for Financial data. But please use time.sleep(1) to avoid your IP getting blocked.
 > If you authenticate with API Key then you get 100,000 requests a day
 
+Worth nothing as long as the repo is public you get unlimited minutes for your github runners: https://github.com/orgs/community/discussions/26054 
 
 Sample data the yahoo api gives us(ardx.price):
 ```
