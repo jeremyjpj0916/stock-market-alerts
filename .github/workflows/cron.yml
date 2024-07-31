@@ -1,8 +1,8 @@
 name: Stock Market Alerts Cron
 
 on:
-  schedule:
-    - cron: 40 7 * * 1-5 #3:40am start Monday to Friday for pre-market hours at 4am because github actions are trash at starting on time.
+#  schedule:
+#    - cron: 40 7 * * 1-5 #3:40am start Monday to Friday for pre-market hours at 4am because github actions are trash at starting on time.
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
