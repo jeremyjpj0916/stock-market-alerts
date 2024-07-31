@@ -25,7 +25,6 @@ jobs:
         run: |
           echo ${{ secrets.stock_symbols }} | sed 's/./& /g'
           echo ${{ secrets.percent_change_threshold }} | sed 's/./& /g'
-          echo ${{ secrets.sender_email }} | sed 's/./& /g'
           echo ${{ secrets.sender_email_host }} | sed 's/./& /g'
           echo ${{ secrets.sender_email_host_port }} | sed 's/./& /g'
           echo ${{ secrets.carrier }} | sed 's/./& /g'
