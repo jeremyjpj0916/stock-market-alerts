@@ -7,6 +7,10 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+concurrency: 
+  group: ${{ github.workflow }}-cron
+  cancel-in-progress: true
+
 jobs:
   run-script:
     runs-on: ubuntu-latest
