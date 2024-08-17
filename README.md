@@ -4,13 +4,13 @@
 ```mermaid
 
 graph TD
-    A[Cron Schedule] -->|Triggers|> B[GitHub Actions Workflow]
-    B -->|Runs|> C[Python Script]
-    C -->|Fetches Data|> D[Yahoo Finance API]
-    D -->|Returns Data|> C
-    C -->|Analyzes Data|> E[Stock Market Alerts]
-    E -->|Sends Alerts|> F[Email/SMS via Carrier]
-    F -->|Notifies User|> G[User]
+    A["Cron Schedule"] --> B["GitHub Actions Workflow"]
+    B --> C["Python Script"]
+    C --> D["Yahoo Finance API"]
+    D --> C
+    C --> E["Stock Market Alerts"]
+    E --> F["Email/SMS via Carrier"]
+    F --> G["User"]
 ```
 
 Script will use yahoo api via lib, and SMS texts from a email account via a lib to help keep you in the know for when a big move happens(FDA Approval/Deny, Data good/bad for biotech plays). I personally keep my phone on silent during the day and have overriden that setting when these texts from my emails come to vibrate and alarm like crazy so i won't miss the catalyst(good or bad news)!
