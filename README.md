@@ -1,4 +1,4 @@
-### Hoping to solve pre/regular/post market hours alerts on big stock moves(indicating a catalyst has occured).
+### Solving pre/regular/post market hours alerts on big stock moves(indicating a catalyst has occured).
 
 
 ```mermaid
