@@ -2,6 +2,7 @@
 
 
 ```mermaid
+
 graph TD
     A[Cron Schedule] -->|Triggers|> B[GitHub Actions Workflow]
     B -->|Runs|> C[Python Script]
