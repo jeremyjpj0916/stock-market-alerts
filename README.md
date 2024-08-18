@@ -51,16 +51,27 @@ Update: Added basic ```main.tf``` and ```deploy.yaml``` for aws app container de
 ```mermaid
 
 graph TD
-    A[Terraform] -->|Init|> B[AWS Provider]
-    B -->|Create|> C[ECS Cluster]
-    C -->|Create|> D[ECS Task Definition]
-    D -->|Create|> E[ECR Repository]
-    E -->|Build|> F[Docker Image]
-    F -->|Push|> E
-    E -->|Update|> D
-    D -->|Deploy|> G[ECS Service]
-    G -->|Run|> H[Container Instance]
-    H -->|Execute|> I[Python Script]
+A(Terraform) --> B(AWS Provider)
+B --> C(ECS Cluster)
+C --> D(ECS Task Definition)
+D --> E(ECR Repository)
+E --> F(Docker Image)
+F --> E
+E --> D
+D --> G(ECS Service)
+G --> H(Container Instance)
+H --> I(Python Script)
+
+A -->|Init| B
+B -->|Create| C
+C -->|Create| D
+D -->|Create| E
+E -->|Build| F
+F -->|Push| E
+E -->|Update| D
+D -->|Deploy| G
+G -->|Run| H
+H -->|Execute| I
 ```
 
 Or better yet just fork this repo and setup proper github secrets and the github action ```cron.yml``` included in this repo will run Market hours 4am EST to 8pm EST(pre and regular and post market) to alert
