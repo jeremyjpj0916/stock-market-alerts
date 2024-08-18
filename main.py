@@ -156,49 +156,60 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
 
 
 if __name__ == '__main__':
-    # define eastern timezone (will be working in EST timezone w the US stock market data)
-    eastern = timezone('US/Eastern')
+    try:
+        # define eastern timezone (will be working in EST timezone w the US stock market data)
+        eastern = timezone('US/Eastern')
 
-    # Make your stock ticker list. Max limit 5 or else we will truncate to first 5(this is to protect you from
-    # getting IP banned for too many queries)
-    tickerList = stock_symbols
+        # Make your stock ticker list. Max limit 5 or else we will truncate to first 5(this is to protect you from
+        # getting IP banned for too many queries)
+        tickerList = stock_symbols
 
-    # Alert threshold % (.10 for 10% up/down movement, .05 for 5% up/down movement etc.)
-    alert_threshold_percent = percent_change_threshold
+        # Alert threshold % (.10 for 10% up/down movement, .05 for 5% up/down movement etc.)
+        alert_threshold_percent = percent_change_threshold
 
-    if len(tickerList) > 5:
-        print("**Ticker list > 5 detected, taking first 5 tickers to monitor! Printing the tickers monitored below:**")
-        del tickerList[5:]
-        # printing shortened list
-        print("**The truncated ticker list is : " + str(tickerList) + "**")
+        if len(tickerList) > 5:
+            print("**Ticker list > 5 detected, taking first 5 tickers to monitor! Printing the tickers monitored below:**")
+            del tickerList[5:]
+            # printing shortened list
+            print("**The truncated ticker list is : " + str(tickerList) + "**")
 
-    # We build out watchlist at start of program execution.
-    watchList = []
-    for stock in tickerList:
-        tempTicker = classes.Stock(stock, False)  # Set that we have not alerted yet to false. Will be made true
-        # if we alert on it (to prevent spamming alerts constantly when it reaches our jump % threshold).
-        watchList.append(tempTicker)
+        # We build out watchlist at start of program execution.
+        watchList = []
+        for stock in tickerList:
+            tempTicker = classes.Stock(stock, False)  # Set that we have not alerted yet to false. Will be made true
+            # if we alert on it (to prevent spamming alerts constantly when it reaches our jump % threshold).
+            watchList.append(tempTicker)
 
-    # Infinite execution loop checker on our stock
-    while True:
-        # est datetime
-        est_dt = datetime.now(eastern).time()
-        weekday = datetime.now(eastern).today().weekday()  # 5 Monday is 0 and Sunday is 6.
+        # Infinite execution loop checker on our stock
+        while True:
+            try:
+                # est datetime
+                est_dt = datetime.now(eastern).time()
+                weekday = datetime.now(eastern).today().weekday()  # 5 Monday is 0 and Sunday is 6.
 
-        # Do nothing from 8pm EST to 4am EST.
-        if is_now_in_time_period(dt.time(20, 00), dt.time(4, 00), est_dt) or (weekday >= 5):
-            if weekday >= 5:
-                print("**Do nothing on closed market days saturday and sunday weekend**")
-            else:
-                print("**Do nothing between 8PM EST and 4AM EST market hours**")
-            time.sleep(60)  # Sleep 1 minute checks when in the quiet period
-            continue
-        elif is_now_in_time_period(dt.time(4, 00), dt.time(9, 30), est_dt):  # Premarket analysis
-            evaluate_watch_list(watchList, "pre", alert_threshold_percent)
-        elif is_now_in_time_period(dt.time(9, 30), dt.time(16, 00), est_dt):  # Regular Market analysis
-            evaluate_watch_list(watchList, "regular", alert_threshold_percent)
-        elif is_now_in_time_period(dt.time(16, 00), dt.time(9, 30), est_dt):  # Post Market analysis
-            evaluate_watch_list(watchList, "post", alert_threshold_percent)
+                # Do nothing from 8pm EST to 4am EST.
+                if is_now_in_time_period(dt.time(20, 00), dt.time(4, 00), est_dt) or (weekday >= 5):
+                    if weekday >= 5:
+                        print("**Do nothing on closed market days saturday and sunday weekend**")
+                    else:
+                        print("**Do nothing between 8PM EST and 4AM EST market hours**")
+                    time.sleep(60)  # Sleep 1 minute checks when in the quiet period
+                    continue
+                elif is_now_in_time_period(dt.time(4, 00), dt.time(9, 30), est_dt):  # Premarket analysis
+                    evaluate_watch_list(watchList, "pre", alert_threshold_percent)
+                elif is_now_in_time_period(dt.time(9, 30), dt.time(16, 00), est_dt):  # Regular Market analysis
+                    evaluate_watch_list(watchList, "regular", alert_threshold_percent)
+                elif is_now_in_time_period(dt.time(16, 00), dt.time(9, 30), est_dt):  # Post Market analysis
+                    evaluate_watch_list(watchList, "post", alert_threshold_percent)
 
-        # Sleep 10 seconds between active hour checks(pre/post/regular market hours)
-        time.sleep(10)
+                # Sleep 10 seconds between active hour checks(pre/post/regular market hours)
+                time.sleep(10)
+
+            except KeyboardInterrupt:
+                print("\n**Program terminated by user**")
+                break
+            except Exception as e:
+                print(f"An unexpected error occurred: {str(e)}")
+                time.sleep(60)  # Sleep 1 minute before continuing
+    except Exception as e:
+        print(f"An unexpected error occurred in the main block: {str(e)}")
