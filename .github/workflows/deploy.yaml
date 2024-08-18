@@ -12,12 +12,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Login to AWS
-        uses: aws-actions/login@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
+      - name: Install Terraform
+        run: |
+          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+          sudo apt-get update && sudo apt-get install -y terraform
 
       - name: Terraform init
         run: terraform init
