@@ -1,0 +1,20 @@
+[
+  {
+    "name": "stock-market-alerts",
+    "image": "${aws_account_id}.dkr.ecr.us-east-1.amazonaws.com/stock-market-alerts:latest",
+    "cpu": 256,
+    "memory": 512,
+    "essential": true,
+    "command": ["python", "-u", "main.py"],
+    "environment": [
+      {
+        "name": "stock_symbols",
+        "value": "${stock_symbols}"
+      },
+      {
+        "name": "percent_change_threshold",
+        "value": "${percent_change_threshold}"
+      }
+    ]
+  }
+]
