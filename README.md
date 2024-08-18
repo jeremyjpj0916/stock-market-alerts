@@ -46,6 +46,8 @@ Carrier options:
     "uscellular": "email.uscc.net",
 ```
 
+## Added AWS deployment via github action
+
 Update: Added basic ```main.tf``` and ```/.github/workflows/deploy.yaml``` paired with ```container-definitions.json``` for aws app container deployment option kicked off by a github action. 
 
 ```mermaid
@@ -74,7 +76,9 @@ G -->|Run| H
 H -->|Execute| I
 ```
 
-Or better yet just fork this repo and setup proper github secrets and the github action ```cron.yml``` included in this repo will run Market hours 4am EST to 8pm EST(pre and regular and post market) to alert
+## Github action runtime approach(totally free!)
+
+Or better yet just fork this repo and setup proper github secrets and the github action ```/.github/workflows/cron.yml``` included in this repo will run Market hours 4am EST to 8pm EST(pre and regular and post market) to alert
 you on any stock moves. Secrets look like so when setup:
 
 ![image](https://github.com/user-attachments/assets/babe896d-7121-4d88-8e02-e1ec98140f8a)
