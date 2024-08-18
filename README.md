@@ -34,11 +34,6 @@ python3 main.py \
   --yahoo_api_key apikeyhere
 ```
 
-AI Bot made me a Node JS version too(any testers?):
-```
-node main.js MSFT,AAPL,GOOG 0.10 example@example.com smtp.example.com 587 password verizon 1234567890 abcdefg
-```
-
 Carrier options: 
 ```
     "verizon": "vtext.com",
