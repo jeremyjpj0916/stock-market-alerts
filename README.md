@@ -46,7 +46,7 @@ Carrier options:
     "uscellular": "email.uscc.net",
 ```
 
-## Added AWS deployment via github action
+## AWS deployment via github action
 
 Update: Added basic ```main.tf``` and ```/.github/workflows/deploy.yaml``` paired with ```container-definitions.json``` for aws app container deployment option kicked off by a github action. 
 
