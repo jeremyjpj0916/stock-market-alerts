@@ -27,3 +27,13 @@ jobs:
         env:
           stock_symbols: ${{ secrets.STOCK_SYMBOLS }}
           percent_change_threshold: ${{ secrets.PERCENT_CHANGE_THRESHOLD }}
+
+      - name: Build and push image
+        run: |
+          docker build -t stock-market-alerts .
+          docker tag stock-market-alerts:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/stock-market-alerts:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/stock-market-alerts:latest
+
+      - name: Update ECS task definition
+        run: |
+          aws ecs update-task-definition --cluster stock-market-alerts --task-definition stock-market-alerts --container-definitions file://container-definitions.json
