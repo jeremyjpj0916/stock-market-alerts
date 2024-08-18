@@ -58,33 +58,46 @@ def send_message(_subj, _msg):
     _carrier = carrier
     _email = sender_email
     _password = sender_email_password
+
     # Alert SMS
     for _num in _num_list:
-        coro = send_txt(_num, _carrier, _email, _password, _msg, _subj)
-        asyncio.run(coro)
-        # Sleep 3 seconds between texts to diff numbers(unsure googles rate limit or protections for rapid texts).
+        try:
+            coro = send_txt(_num, _carrier, _email, _password, _msg, _subj)
+            asyncio.run(coro)
+        except Exception as e:
+            print(f"Error sending message to {_num}: {str(e)}")
+
+        # Sleep 3 seconds between texts to diff numbers
         time.sleep(3)
 
 
-# pylint: disable=too-many-arguments
+
 async def send_txt(
         num: Union[str, int], carrier: str, email: str, password: str, msg: str, subj: str
 ) -> Tuple[dict, str]:
-    to_email = CARRIER_MAP[carrier]
+    try:
+        to_email = CARRIER_MAP[carrier]
 
-    # build message
-    message = EmailMessage()
-    message["From"] = email
-    message["To"] = f"{num}@{to_email}"
-    message["Subject"] = subj
-    message.set_content(msg)
+        # build message
+        message = EmailMessage()
+        message["From"] = email
+        message["To"] = f"{num}@{to_email}"
+        message["Subject"] = subj
+        message.set_content(msg)
 
-    # send
-    send_kws = dict(username=email, password=password, hostname=sender_email_host, port=sender_email_host_port, start_tls=True)
-    res = await aiosmtplib.send(message, **send_kws)  # type: ignore
-    msg = "failed" if not re.search(r"\sOK\s", res[1]) else "succeeded"
-    print(msg)
-    return res
+        # send
+        send_kws = dict(username=email, password=password, hostname=sender_email_host, port=sender_email_host_port, start_tls=True)
+        res = await aiosmtplib.send(message, **send_kws)  # type: ignore
+        msg = "failed" if not re.search(r"\sOK\s", res[1]) else "succeeded"
+        print(msg)
+        return res
+    except KeyError as e:
+        print(f"Error: Carrier '{carrier}' not found in CARRIER_MAP. Error: {str(e)}")
+    except aiosmtplib.SMTPException as e:
+        print(f"Error sending email: {str(e)}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {str(e)}")
+    return None, "failed"
 
 
 def is_now_in_time_period(start_time, end_time, now_time):
