@@ -17,7 +17,7 @@ resource "aws_ecs_task_definition" "stock_market_alerts" {
   container_definitions = jsonencode([
     {
       name      = "stock-market-alerts"
-      image     = "python:3.9-slim"
+      image     = "${aws_account_id}.dkr.ecr.us-east-1.amazonaws.com/stock-market-alerts:latest"
       cpu       = 256
       memory    = 512
       essential = true
@@ -62,4 +62,9 @@ variable "stock_symbols" {
 variable "percent_change_threshold" {
   type        = number
   description = "Percent change threshold"
+}
+
+variable "aws_account_id" {
+  type        = string
+  description = "AWS account ID"
 }
