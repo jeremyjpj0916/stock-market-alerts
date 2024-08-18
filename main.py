@@ -111,43 +111,48 @@ def is_now_in_time_period(start_time, end_time, now_time):
 def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
     print(market_phase + " market analysis checks in progress")
     for company in watch_list:
-        if not company.alerted_already:  # Have not alerted on ticker at runtime yet? Then check.
-            company_stock = company.stock_ticker
-            yahoo_stock_price_details = Ticker(company_stock, api_key=yahoo_api_key).price
-            #print(yahoo_stock_price_details) only used for debugging
-            if market_phase == "pre" and "preMarketChangePercent" in yahoo_stock_price_details[company_stock]:
-                # Ex: -0.0012641911 / 0.0012641911
-                pre_market_change_percent = yahoo_stock_price_details[company_stock]["preMarketChangePercent"]
-                if pre_market_change_percent >= change_percent_threshold:
-                    send_message(company_stock + " ALERT UP", company_stock + " Price: " + str(
-                        yahoo_stock_price_details[company_stock]["preMarketPrice"]) + ", Change: " + str((100*round(pre_market_change_percent, 4))) + "%")
-                    company.alerted_already = True
-                elif pre_market_change_percent <= -change_percent_threshold:
-                    send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
-                        yahoo_stock_price_details[company_stock]["preMarketPrice"]) + ", Change: " + str((100*round(pre_market_change_percent, 4))) + "%")
-                    company.alerted_already = True
-            elif market_phase == "regular" and "regularMarketChangePercent" in yahoo_stock_price_details[company_stock]:
-                # Ex: -0.0012641911 / 0.0012641911
-                regular_market_change_percent = yahoo_stock_price_details[company_stock]["regularMarketChangePercent"]
-                if regular_market_change_percent >= change_percent_threshold:
-                    send_message(company_stock + " ALERT UP", company_stock + " Price: " + str(
-                        yahoo_stock_price_details[company_stock]["regularMarketPrice"]) + ", Change: " + str((100*round(regular_market_change_percent, 4))) + "%")
-                    company.alerted_already = True
-                elif regular_market_change_percent <= -change_percent_threshold:
-                    send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
-                        yahoo_stock_price_details[company_stock]["regularMarketPrice"]) + ", Change: " + str((100*round(regular_market_change_percent, 4))) + "%")
-                    company.alerted_already = True
-            elif market_phase == "post" and "postMarketChangePercent" in yahoo_stock_price_details[company_stock]:
-                # Ex: -0.0012641911 / 0.0012641911
-                post_market_change_percent = yahoo_stock_price_details[company_stock]["postMarketChangePercent"]
-                if post_market_change_percent >= change_percent_threshold:
-                    send_message(company_stock + " ALERT UP", company_stock + " Price: " + str(
-                        yahoo_stock_price_details[company_stock]["postMarketPrice"]) + ", Change: " + str((100*round(post_market_change_percent, 4))) + "%")
-                    company.alerted_already = True
-                elif post_market_change_percent <= -change_percent_threshold:
-                    send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
-                        yahoo_stock_price_details[company_stock]["postMarketPrice"]) + ", Change: " + str((100*round(post_market_change_percent, 4))) + "%")
-                    company.alerted_already = True
+        try:
+            if not company.alerted_already:  # Have not alerted on ticker at runtime yet? Then check.
+                company_stock = company.stock_ticker
+                yahoo_stock_price_details = Ticker(company_stock, api_key=yahoo_api_key).price
+
+                if market_phase == "pre" and "preMarketChangePercent" in yahoo_stock_price_details[company_stock]:
+                    pre_market_change_percent = yahoo_stock_price_details[company_stock]["preMarketChangePercent"]
+                    if pre_market_change_percent >= change_percent_threshold:
+                        send_message(company_stock + " ALERT UP", company_stock + " Price: " + str(
+                            yahoo_stock_price_details[company_stock]["preMarketPrice"]) + ", Change: " + str((100*round(pre_market_change_percent, 4))) + "%")
+                        company.alerted_already = True
+                    elif pre_market_change_percent <= -change_percent_threshold:
+                        send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
+                            yahoo_stock_price_details[company_stock]["preMarketPrice"]) + ", Change: " + str((100*round(pre_market_change_percent, 4))) + "%")
+                        company.alerted_already = True
+
+                elif market_phase == "regular" and "regularMarketChangePercent" in yahoo_stock_price_details[company_stock]:
+                    regular_market_change_percent = yahoo_stock_price_details[company_stock]["regularMarketChangePercent"]
+                    if regular_market_change_percent >= change_percent_threshold:
+                        send_message(company_stock + " ALERT UP", company_stock + " Price: " + str(
+                            yahoo_stock_price_details[company_stock]["regularMarketPrice"]) + ", Change: " + str((100*round(regular_market_change_percent, 4))) + "%")
+                        company.alerted_already = True
+                    elif regular_market_change_percent <= -change_percent_threshold:
+                        send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
+                            yahoo_stock_price_details[company_stock]["regularMarketPrice"]) + ", Change: " + str((100*round(regular_market_change_percent, 4))) + "%")
+                        company.alerted_already = True
+
+                elif market_phase == "post" and "postMarketChangePercent" in yahoo_stock_price_details[company_stock]:
+                    post_market_change_percent = yahoo_stock_price_details[company_stock]["postMarketChangePercent"]
+                    if post_market_change_percent >= change_percent_threshold:
+                        send_message(company_stock + " ALERT UP", company_stock + " Price: " + str(
+                            yahoo_stock_price_details[company_stock]["postMarketPrice"]) + ", Change: " + str((100*round(post_market_change_percent, 4))) + "%")
+                        company.alerted_already = True
+                    elif post_market_change_percent <= -change_percent_threshold:
+                        send_message(company_stock + " ALERT DOWN", company_stock + " Price: " + str(
+                            yahoo_stock_price_details[company_stock]["postMarketPrice"]) + ", Change: " + str((100*round(post_market_change_percent, 4))) + "%")
+                        company.alerted_already = True
+
+        except KeyError as e:
+            print(f"Error: Key not found in yahoo_stock_price_details. Error: {str(e)}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {str(e)}")
 
 
 if __name__ == '__main__':
