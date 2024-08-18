@@ -48,6 +48,21 @@ Carrier options:
 
 Update: Added basic ```main.tf``` and ```deploy.yaml``` for aws app container deployment options. 
 
+```mermaid
+
+graph TD
+    A[Terraform] -->|Init|> B[AWS Provider]
+    B -->|Create|> C[ECS Cluster]
+    C -->|Create|> D[ECS Task Definition]
+    D -->|Create|> E[ECR Repository]
+    E -->|Build|> F[Docker Image]
+    F -->|Push|> E
+    E -->|Update|> D
+    D -->|Deploy|> G[ECS Service]
+    G -->|Run|> H[Container Instance]
+    H -->|Execute|> I[Python Script]
+```
+
 Or better yet just fork this repo and setup proper github secrets and the github action ```cron.yml``` included in this repo will run Market hours 4am EST to 8pm EST(pre and regular and post market) to alert
 you on any stock moves. Secrets look like so when setup:
 
