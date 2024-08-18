@@ -46,6 +46,8 @@ Carrier options:
     "uscellular": "email.uscc.net",
 ```
 
+Update: Added basic ```main.tf``` and ```deploy.yaml``` for aws app container deployment options. 
+
 Or better yet just fork this repo and setup proper github secrets and the github action ```cron.yml``` included in this repo will run Market hours 4am EST to 8pm EST(pre and regular and post market) to alert
 you on any stock moves. Secrets look like so when setup:
 
