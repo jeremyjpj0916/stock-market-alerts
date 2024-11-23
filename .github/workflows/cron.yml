@@ -41,12 +41,22 @@ jobs:
       - name: Restart after timed out
         run: |
           CURRENT_TIME=$(date +"%H")
-          echo $CURRENT_TIME
+          CURRENT_DAY=$(date +"%u")
+          echo "Current time: $CURRENT_TIME"
+          echo "Current day: $CURRENT_DAY"
+      
+          # Check if it's past post market hours
           if [ "$CURRENT_TIME" -gt 23 ]; then
-            echo "Past post market hours, exiting github action loop"
+            echo "Past post market hours, exiting GitHub action loop"
             exit 0
           fi
-
+      
+          # Check if it's Saturday (7) or Sunday (1)
+          if [ "$CURRENT_DAY" -eq 6 ] || [ "$CURRENT_DAY" -eq 7 ]; then
+            echo "Weekend (Saturday/Sunday), exiting GitHub action loop"
+            exit 0
+          fi
+      
           echo "Restarting workflow..."
           curl -X POST \
           https://api.github.com/repos/jeremyjpj0916/stock-market-alerts/actions/workflows/cron.yml/dispatches \
