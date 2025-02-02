@@ -25,7 +25,7 @@ jobs:
       - name: Update package lists
         run: sudo apt-get update
       - name: Install system dependencies
-        run: sudo apt-get install -y libxml2-dev libxslt-dev
+        run: sudo apt-get install build-essential libxml2-dev libxslt1-dev zlib1g-dev
       - name: Install dependencies # This step only runs if requirements.txt dependencies change
         run: |
           pip install -r requirements.txt
