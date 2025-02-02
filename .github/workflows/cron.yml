@@ -20,13 +20,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'
           cache: 'pip' # caching pip dependencies
       - name: Update package lists
         run: sudo apt-get update
       - name: Install dependencies # This step only runs if requirements.txt dependencies change
         run: |
-          pip install --upgrade setuptools
           pip install -r requirements.txt
       - name: Print safe config secrets without masking to verify settings
         run: |
