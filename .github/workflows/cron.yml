@@ -28,6 +28,7 @@ jobs:
         run: sudo apt-get install build-essential libxml2-dev libxslt1-dev zlib1g-dev
       - name: Install dependencies # This step only runs if requirements.txt dependencies change
         run: |
+          pip install lxml --find-links https://www.lfd.uci.edu/~gohlke/pythonlibs/
           pip install -r requirements.txt
       - name: Print safe config secrets without masking to verify settings
         run: |
