@@ -26,6 +26,9 @@ parser.add_argument('--yahoo_api_key', required=True, help='Yahoo finance API Ke
 # Parse command-line arguments
 args = parser.parse_args()
 
+# Set up Yahoo Ticker with API key
+Ticker.api_key = args.yahoo_api_key
+
 # Use the dynamic arguments in your script
 stock_symbols = args.stock_symbols
 percent_change_threshold = args.percent_change_threshold
@@ -35,7 +38,6 @@ sender_email_host_port = args.sender_email_host_port
 sender_email_password = args.sender_email_password
 carrier = args.carrier
 phone_numbers = args.phone_numbers
-yahoo_api_key = args.yahoo_api_key
 
 
 # Email script from https://github.com/acamso/demos/blob/master/_email/send_txt_msg.py
@@ -114,7 +116,7 @@ def evaluate_watch_list(watch_list, market_phase, change_percent_threshold):
         try:
             if not company.alerted_already:  # Have not alerted on ticker at runtime yet? Then check.
                 company_stock = company.stock_ticker
-                yahoo_stock_price_details = Ticker(company_stock, api_key=yahoo_api_key).price
+                yahoo_stock_price_details = Ticker(company_stock).price
 
                 if market_phase == "pre" and "preMarketChangePercent" in yahoo_stock_price_details[company_stock]:
                     pre_market_change_percent = yahoo_stock_price_details[company_stock]["preMarketChangePercent"]
