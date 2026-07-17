@@ -84,7 +84,6 @@ you on any stock moves. Secrets look like so when setup:
 ![image](https://github.com/user-attachments/assets/babe896d-7121-4d88-8e02-e1ec98140f8a)
 
 
-
 <br />
 <br />
 <br />
