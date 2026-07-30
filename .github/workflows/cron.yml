@@ -2,67 +2,166 @@ name: Stock Market Alerts Cron
 
 on:
   schedule:
-    - cron: '40 7 * * 1-5' #3:40am start Monday to Friday for pre-market hours at 4am because github actions are trash at starting on time.
+    # 6:50 AM Eastern, Monday-Friday.
+    # America/New_York automatically handles EST and EDT.
+    - cron: '50 6 * * 1-5'
+      timezone: 'America/New_York'
 
-  # Allows you to run this workflow manually from the Actions tab
+  # Allows manual execution from the GitHub Actions tab.
   workflow_dispatch:
 
-concurrency: 
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
   group: ${{ github.workflow }}-cron
   cancel-in-progress: true
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-          cache: 'pip' # caching pip dependencies
-      - name: Update package lists
-        run: sudo apt-get update
-      - name: Install dependencies # This step only runs if requirements.txt dependencies change
+          cache: 'pip'
+
+      - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-      - name: Print safe config secrets without masking to verify settings
-        run: |
-          echo ${{ secrets.stock_symbols }} | sed 's/./& /g'
-          echo ${{ secrets.percent_change_threshold }} | sed 's/./& /g'
-          echo ${{ secrets.sender_email_host }} | sed 's/./& /g'
-          echo ${{ secrets.sender_email_host_port }} | sed 's/./& /g'
-          echo ${{ secrets.carrier }} | sed 's/./& /g'
-      - name: Run script
-        run: |
-          echo "Script launching!"
-          python -u main.py --stock_symbols ${{ secrets.stock_symbols }} --percent_change_threshold ${{ secrets.percent_change_threshold }} --sender_email ${{ secrets.sender_email }} --sender_email_host ${{ secrets.sender_email_host }} --sender_email_host_port ${{ secrets.sender_email_host_port }} --sender_email_password "${{ secrets.sender_email_password }}" --carrier ${{ secrets.carrier }} --phone_numbers ${{ secrets.phone_numbers }} --yahoo_api_key ${{ secrets.yahoo_api_key }}
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run stock alert monitor
         timeout-minutes: 355
-        continue-on-error: true # Mark a success even though timeout so action gets marked as success and pip cache can be built(won't be built if job is failed)
-      - name: Restart after timed out
+        env:
+          STOCK_SYMBOLS: ${{ secrets.stock_symbols }}
+          PERCENT_CHANGE_THRESHOLD: ${{ secrets.percent_change_threshold }}
+          SENDER_EMAIL: ${{ secrets.sender_email }}
+          SENDER_EMAIL_HOST: ${{ secrets.sender_email_host }}
+          SENDER_EMAIL_HOST_PORT: ${{ secrets.sender_email_host_port }}
+          SENDER_EMAIL_PASSWORD: ${{ secrets.sender_email_password }}
+          CARRIER: ${{ secrets.carrier }}
+          PHONE_NUMBERS: ${{ secrets.phone_numbers }}
+          YAHOO_API_KEY: ${{ secrets.yahoo_api_key }}
+
         run: |
-          CURRENT_TIME=$(date +"%H")
-          CURRENT_DAY=$(date +"%u")
-          echo "Current time: $CURRENT_TIME"
-          echo "Current day: $CURRENT_DAY"
-      
-          # Check if it's past post market hours
-          if [ "$CURRENT_TIME" -gt 23 ]; then
-            echo "Past post market hours, exiting GitHub action loop"
+          set -euo pipefail
+
+          EASTERN_DAY=$(TZ=America/New_York date +'%u')
+          NOW_EPOCH=$(date +'%s')
+          MARKET_END_EPOCH=$(
+            TZ=America/New_York date \
+              -d "$(TZ=America/New_York date +'%F') 20:00:00" \
+              +'%s'
+          )
+          SECONDS_UNTIL_MARKET_END=$((MARKET_END_EPOCH - NOW_EPOCH))
+
+          if [ "$EASTERN_DAY" -ge 6 ]; then
+            echo "Weekend in America/New_York; exiting."
             exit 0
           fi
-      
-          # Check if it's Saturday (7) or Sunday (1)
-          if [ "$CURRENT_DAY" -eq 6 ] || [ "$CURRENT_DAY" -eq 7 ]; then
-            echo "Weekend (Saturday/Sunday), exiting GitHub action loop"
+
+          if [ "$SECONDS_UNTIL_MARKET_END" -le 0 ]; then
+            echo "It is already 8:00 PM or later Eastern; exiting."
             exit 0
           fi
-      
-          echo "Restarting workflow..."
-          curl -X POST \
-          https://api.github.com/repos/jeremyjpj0916/stock-market-alerts/actions/workflows/cron.yml/dispatches \
-          -H "Accept: application/vnd.github+json" \
-          -H 'Authorization: Bearer ${{ secrets.HUB_PAT }}' \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          -d '{"ref":"main"}'
+
+          # Keep each run below GitHub's six-hour hosted-runner limit
+          # and leave time for the next workflow run to be dispatched.
+          MAX_RUNTIME_SECONDS=$((350 * 60))
+
+          if [ "$SECONDS_UNTIL_MARKET_END" -lt "$MAX_RUNTIME_SECONDS" ]; then
+            RUNTIME_SECONDS="$SECONDS_UNTIL_MARKET_END"
+          else
+            RUNTIME_SECONDS="$MAX_RUNTIME_SECONDS"
+          fi
+
+          # Convert space-separated secrets into argument arrays.
+          read -r -a STOCK_SYMBOL_ARGS <<< "$STOCK_SYMBOLS"
+          read -r -a PHONE_NUMBER_ARGS <<< "$PHONE_NUMBERS"
+
+          echo "Launching stock alert monitor for up to ${RUNTIME_SECONDS} seconds."
+
+          set +e
+
+          timeout \
+            --signal=TERM \
+            --kill-after=30s \
+            "$RUNTIME_SECONDS" \
+            python -u main.py \
+              --stock_symbols "${STOCK_SYMBOL_ARGS[@]}" \
+              --percent_change_threshold "$PERCENT_CHANGE_THRESHOLD" \
+              --sender_email "$SENDER_EMAIL" \
+              --sender_email_host "$SENDER_EMAIL_HOST" \
+              --sender_email_host_port "$SENDER_EMAIL_HOST_PORT" \
+              --sender_email_password "$SENDER_EMAIL_PASSWORD" \
+              --carrier "$CARRIER" \
+              --phone_numbers "${PHONE_NUMBER_ARGS[@]}" \
+              --yahoo_api_key "$YAHOO_API_KEY"
+
+          EXIT_CODE=$?
+
+          set -e
+
+          # GNU timeout normally returns 124 when its configured duration
+          # expires. It may return 143 when the program exits after SIGTERM.
+          if [ "$EXIT_CODE" -eq 0 ] ||
+             [ "$EXIT_CODE" -eq 124 ] ||
+             [ "$EXIT_CODE" -eq 143 ]; then
+            echo "Monitor completed or reached its expected runtime limit."
+            exit 0
+          fi
+
+          echo "Monitor exited unexpectedly with code $EXIT_CODE."
+          exit "$EXIT_CODE"
+
+      - name: Restart workflow if monitoring should continue
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+        run: |
+          set -euo pipefail
+
+          EASTERN_DAY=$(TZ=America/New_York date +'%u')
+          EASTERN_HOUR=$(TZ=America/New_York date +'%H')
+
+          if [ "$EASTERN_DAY" -ge 6 ]; then
+            echo "Weekend in America/New_York; not restarting."
+            exit 0
+          fi
+
+          if [ $((10#$EASTERN_HOUR)) -ge 20 ]; then
+            echo "It is 8:00 PM or later Eastern; not restarting."
+            exit 0
+          fi
+
+          echo "Dispatching the next workflow run."
+
+          HTTP_STATUS=$(
+            curl \
+              --silent \
+              --show-error \
+              --location \
+              --output /tmp/workflow-dispatch-response.txt \
+              --write-out '%{http_code}' \
+              --request POST \
+              --header 'Accept: application/vnd.github+json' \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'X-GitHub-Api-Version: 2026-03-10' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/cron.yml/dispatches" \
+              --data '{"ref":"main"}'
+          )
+
+          if [ "$HTTP_STATUS" -ne 204 ]; then
+            echo "Workflow dispatch failed with HTTP status $HTTP_STATUS."
+            cat /tmp/workflow-dispatch-response.txt
+            exit 1
+          fi
+
+          echo "Next workflow run dispatched successfully."
