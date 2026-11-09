@@ -2,26 +2,27 @@ name: Stock Market Alerts Cron
 
 on:
   schedule:
-    # 6:50 AM Eastern, Monday-Friday.
-    # America/New_York automatically handles EST and EDT.
-    - cron: '50 6 * * 1-5'
+    # Queue a replacement hourly, with an early start ahead of 4 AM premarket.
+    # Independent triggers recover from failed runs without a self-dispatch chain.
+    - cron: '50 3-19 * * 1-5'
       timezone: 'America/New_York'
-
-  # Allows manual execution from the GitHub Actions tab.
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: write
+  actions: read
 
+# A queued replacement must wait for the active monitor to save its alert state.
+# GitHub replaces older pending runs when another scheduled trigger arrives.
 concurrency:
   group: ${{ github.workflow }}-cron
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   run-script:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
-
+    timeout-minutes: 360
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -30,15 +31,28 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-          cache: 'pip'
+          cache: pip
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
+
+      - name: Find saved alert state
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python scripts/restore_state.py
+
+      - name: Restore alert state
+        if: steps.state.outputs.run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: alert-state
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.state.outputs.run_id }}
 
       - name: Run stock alert monitor
-        timeout-minutes: 355
+        timeout-minutes: 352
         env:
           STOCK_SYMBOLS: ${{ secrets.stock_symbols }}
           PERCENT_CHANGE_THRESHOLD: ${{ secrets.percent_change_threshold }}
@@ -48,120 +62,15 @@ jobs:
           SENDER_EMAIL_PASSWORD: ${{ secrets.sender_email_password }}
           CARRIER: ${{ secrets.carrier }}
           PHONE_NUMBERS: ${{ secrets.phone_numbers }}
-          YAHOO_API_KEY: ${{ secrets.yahoo_api_key }}
+          RECIPIENT_EMAILS: ${{ secrets.recipient_emails }}
+        run: python -u main.py --max_runtime_seconds 20700 --exit_at_market_close
 
-        run: |
-          set -euo pipefail
-
-          EASTERN_DAY=$(TZ=America/New_York date +'%u')
-          NOW_EPOCH=$(date +'%s')
-          MARKET_END_EPOCH=$(
-            TZ=America/New_York date \
-              -d "$(TZ=America/New_York date +'%F') 20:00:00" \
-              +'%s'
-          )
-          SECONDS_UNTIL_MARKET_END=$((MARKET_END_EPOCH - NOW_EPOCH))
-
-          if [ "$EASTERN_DAY" -ge 6 ]; then
-            echo "Weekend in America/New_York; exiting."
-            exit 0
-          fi
-
-          if [ "$SECONDS_UNTIL_MARKET_END" -le 0 ]; then
-            echo "It is already 8:00 PM or later Eastern; exiting."
-            exit 0
-          fi
-
-          # Keep each run below GitHub's six-hour hosted-runner limit
-          # and leave time for the next workflow run to be dispatched.
-          MAX_RUNTIME_SECONDS=$((350 * 60))
-
-          if [ "$SECONDS_UNTIL_MARKET_END" -lt "$MAX_RUNTIME_SECONDS" ]; then
-            RUNTIME_SECONDS="$SECONDS_UNTIL_MARKET_END"
-          else
-            RUNTIME_SECONDS="$MAX_RUNTIME_SECONDS"
-          fi
-
-          # Convert space-separated secrets into argument arrays.
-          read -r -a STOCK_SYMBOL_ARGS <<< "$STOCK_SYMBOLS"
-          read -r -a PHONE_NUMBER_ARGS <<< "$PHONE_NUMBERS"
-
-          echo "Launching stock alert monitor for up to ${RUNTIME_SECONDS} seconds."
-
-          set +e
-
-          timeout \
-            --signal=TERM \
-            --kill-after=30s \
-            "$RUNTIME_SECONDS" \
-            python -u main.py \
-              --stock_symbols "${STOCK_SYMBOL_ARGS[@]}" \
-              --percent_change_threshold "$PERCENT_CHANGE_THRESHOLD" \
-              --sender_email "$SENDER_EMAIL" \
-              --sender_email_host "$SENDER_EMAIL_HOST" \
-              --sender_email_host_port "$SENDER_EMAIL_HOST_PORT" \
-              --sender_email_password "$SENDER_EMAIL_PASSWORD" \
-              --carrier "$CARRIER" \
-              --phone_numbers "${PHONE_NUMBER_ARGS[@]}" \
-              --yahoo_api_key "$YAHOO_API_KEY"
-
-          EXIT_CODE=$?
-
-          set -e
-
-          # GNU timeout normally returns 124 when its configured duration
-          # expires. It may return 143 when the program exits after SIGTERM.
-          if [ "$EXIT_CODE" -eq 0 ] ||
-             [ "$EXIT_CODE" -eq 124 ] ||
-             [ "$EXIT_CODE" -eq 143 ]; then
-            echo "Monitor completed or reached its expected runtime limit."
-            exit 0
-          fi
-
-          echo "Monitor exited unexpectedly with code $EXIT_CODE."
-          exit "$EXIT_CODE"
-
-      - name: Restart workflow if monitoring should continue
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-        run: |
-          set -euo pipefail
-
-          EASTERN_DAY=$(TZ=America/New_York date +'%u')
-          EASTERN_HOUR=$(TZ=America/New_York date +'%H')
-
-          if [ "$EASTERN_DAY" -ge 6 ]; then
-            echo "Weekend in America/New_York; not restarting."
-            exit 0
-          fi
-
-          if [ $((10#$EASTERN_HOUR)) -ge 20 ]; then
-            echo "It is 8:00 PM or later Eastern; not restarting."
-            exit 0
-          fi
-
-          echo "Dispatching the next workflow run."
-
-          HTTP_STATUS=$(
-            curl \
-              --silent \
-              --show-error \
-              --location \
-              --output /tmp/workflow-dispatch-response.txt \
-              --write-out '%{http_code}' \
-              --request POST \
-              --header 'Accept: application/vnd.github+json' \
-              --header "Authorization: Bearer $GH_TOKEN" \
-              --header 'X-GitHub-Api-Version: 2026-03-10' \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/cron.yml/dispatches" \
-              --data '{"ref":"main"}'
-          )
-
-          if [ "$HTTP_STATUS" -ne 204 ]; then
-            echo "Workflow dispatch failed with HTTP status $HTTP_STATUS."
-            cat /tmp/workflow-dispatch-response.txt
-            exit 1
-          fi
-
-          echo "Next workflow run dispatched successfully."
+      - name: Save alert state for the next runner
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alert-state
+          path: alert-state.json
+          retention-days: 3
+          if-no-files-found: ignore
+          overwrite: true
