@@ -2,11 +2,15 @@ name: Stock Market Alerts Cron
 
 on:
   schedule:
-    # Queue a replacement hourly, with an early start ahead of 4 AM premarket.
-    # Independent triggers recover from failed runs without a self-dispatch chain.
-    - cron: '50 3-19 * * 1-5'
+    # Start ahead of premarket and periodically recover if the active chain fails.
+    - cron: '50 2-19 * * 1-5'
       timezone: 'America/New_York'
   workflow_dispatch:
+    inputs:
+      recovery:
+        description: Single recovery attempt after a failed runner
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,7 +49,7 @@ jobs:
 
       - name: Restore alert state
         if: steps.state.outputs.run_id != ''
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: alert-state
           github-token: ${{ github.token }}
@@ -56,21 +60,41 @@ jobs:
         env:
           STOCK_SYMBOLS: ${{ secrets.stock_symbols }}
           PERCENT_CHANGE_THRESHOLD: ${{ secrets.percent_change_threshold }}
-          SENDER_EMAIL: ${{ secrets.sender_email }}
-          SENDER_EMAIL_HOST: ${{ secrets.sender_email_host }}
-          SENDER_EMAIL_HOST_PORT: ${{ secrets.sender_email_host_port }}
-          SENDER_EMAIL_PASSWORD: ${{ secrets.sender_email_password }}
-          CARRIER: ${{ secrets.carrier }}
-          PHONE_NUMBERS: ${{ secrets.phone_numbers }}
-          RECIPIENT_EMAILS: ${{ secrets.recipient_emails }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python -u main.py --max_runtime_seconds 20700 --exit_at_market_close
 
       - name: Save alert state for the next runner
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: alert-state
           path: alert-state.json
-          retention-days: 3
+          retention-days: 1
           if-no-files-found: ignore
           overwrite: true
+
+  handoff:
+    needs: run-script
+    # Try one fresh runner on failure. Persistent failures fall back to the hourly schedule.
+    if: >-
+      ${{ !cancelled() && (needs.run-script.result == 'success' ||
+          (needs.run-script.result == 'failure' && !inputs.recovery)) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Queue the next monitor while the market is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RECOVERY: ${{ needs.run-script.result == 'failure' }}
+          TZ: America/New_York
+        run: |
+          read -r weekday hour <<< "$(date '+%u %H')"
+          if (( weekday <= 5 && 10#$hour >= 4 && 10#$hour < 20 )); then
+            gh workflow run cron.yml --repo "$GITHUB_REPOSITORY" --ref "$DEFAULT_BRANCH" -f recovery="$RECOVERY"
+            echo "Queued the next monitor on $DEFAULT_BRANCH."
+          else
+            echo "Outside monitoring hours. The next weekday schedule will start the monitor."
+          fi
