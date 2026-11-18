@@ -1,4 +1,3 @@
-import asyncio
 import io
 import json
 import os
@@ -8,9 +7,8 @@ from contextlib import redirect_stderr
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, PropertyMock, patch
-
-import aiosmtplib
+from unittest.mock import Mock, PropertyMock, patch
+from urllib.error import HTTPError
 
 import main
 
@@ -18,20 +16,15 @@ NOW = datetime(2026, 11, 9, 10, tzinfo=main.EASTERN)
 ENV = {
     "STOCK_SYMBOLS": "aapl AAPL msft",
     "PERCENT_CHANGE_THRESHOLD": ".10",
-    "SENDER_EMAIL": "sender@example.com",
-    "SENDER_EMAIL_HOST": "smtp.example.com",
-    "SENDER_EMAIL_HOST_PORT": "587",
-    "SENDER_EMAIL_PASSWORD": "test-password",
-    "CARRIER": "verizon_pics",
-    "PHONE_NUMBERS": "2025550100 2025550101",
+    "NTFY_TOPIC": "test-topic",
 }
 
 
-def quote(change=0.10, when=NOW, phase="regular"):
+def quote(percent=10.0, when=NOW, phase="regular"):
     prefix = main.PHASES[phase][2]
     return {
-        prefix + "ChangePercent": {"raw": change, "fmt": "10%"},
-        prefix + "Price": {"raw": 11},
+        prefix + "ChangePercent": percent,
+        prefix + "Price": 11.0,
         prefix + "Time": int(when.timestamp()),
     }
 
@@ -45,9 +38,7 @@ class ConfigTests(unittest.TestCase):
         args = self.parse()
         self.assertEqual(args.stock_symbols, ["AAPL", "MSFT"])
         self.assertEqual(args.percent_change_threshold, 0.10)
-        self.assertEqual(
-            args.recipients, ["2025550100@vzwpix.com", "2025550101@vzwpix.com"]
-        )
+        self.assertEqual(args.ntfy_topic, "test-topic")
 
     def test_cli_overrides_environment(self):
         self.assertEqual(
@@ -57,23 +48,16 @@ class ConfigTests(unittest.TestCase):
             0.05,
         )
 
-    def test_direct_email_without_carrier_or_phone(self):
-        args = self.parse(
-            {"CARRIER": "", "PHONE_NUMBERS": "", "RECIPIENT_EMAILS": "me@example.com"}
-        )
-        self.assertEqual(args.recipients, ["me@example.com"])
-
     def test_invalid_configuration_fails_before_any_network_access(self):
         cases = [
             {"PERCENT_CHANGE_THRESHOLD": value}
             for value in ["0", "-.1", "nan", "inf", "oops"]
         ]
         cases += [
-            {"CARRIER": "invalid"},
-            {"PHONE_NUMBERS": "123"},
-            {"SENDER_EMAIL_HOST_PORT": "0"},
+            {"NTFY_TOPIC": ""},
+            {"NTFY_TOPIC": "wrong/topic"},
+            {"NTFY_TOPIC": "x" * 65},
             {"STOCK_SYMBOLS": "A B C D E F"},
-            {"RECIPIENT_EMAILS": "bad\naddress"},
             {"STOCK_SYMBOLS": "a;whoami"},
         ]
         for case in cases:
@@ -120,11 +104,13 @@ class QuoteTests(unittest.TestCase):
         for phase, hour in [("pre", 8), ("regular", 10), ("post", 17)]:
             now = NOW.replace(hour=hour)
             for change, direction in [(0.10, "UP"), (-0.10, "DOWN")]:
-                alert = main.quote_alert(quote(change, now, phase), phase, 0.10, now)
+                alert = main.quote_alert(
+                    quote(change * 100, now, phase), phase, 0.10, now
+                )
                 self.assertEqual(alert[0], direction)
                 self.assertIn(f"{change:+.2%}", alert[1])
                 self.assertIsNone(
-                    main.quote_alert(quote(change / 2, now, phase), phase, 0.10, now)
+                    main.quote_alert(quote(change * 50, now, phase), phase, 0.10, now)
                 )
 
     def test_rejects_old_wrong_session_and_future_quotes(self):
@@ -153,6 +139,64 @@ class QuoteTests(unittest.TestCase):
         self.assertIsNone(main.quote_alert(quote(), "pre", 0.10, NOW.replace(hour=8)))
 
 
+class YahooTests(unittest.TestCase):
+    @patch("main.Ticker")
+    def test_reconnects_and_reuses_new_batch_session(self, ticker):
+        expired, renewed = Mock(), Mock()
+        error = OSError("URL with secret crumb")
+        error.response = SimpleNamespace(status_code=401)
+        type(expired).quotes = PropertyMock(side_effect=error)
+        renewed.quotes = {"SLS": quote(156.359), "CAPR": quote(1.3253)}
+        ticker.side_effect = [expired, renewed]
+        source = main.YahooQuotes(["SLS", "CAPR"])
+        with self.assertLogs("main", level="WARNING") as logs:
+            quotes = source.fetch()
+        self.assertIn("HTTP 401", logs.output[0])
+        self.assertNotIn("secret crumb", logs.output[0])
+        self.assertIn(
+            "+156.36%", main.quote_alert(quotes["SLS"], "regular", 0.15, NOW)[1]
+        )
+        self.assertIsNone(main.quote_alert(quotes["CAPR"], "regular", 0.15, NOW))
+        self.assertEqual(source.fetch(), quotes)
+        self.assertEqual(ticker.call_count, 2)
+        ticker.assert_called_with(["SLS", "CAPR"], timeout=15, raise_for_status=True)
+        expired.session.close.assert_called_once()
+        source.close()
+        renewed.session.close.assert_called_once()
+
+    @patch("main.Ticker")
+    def test_transient_setup_failure_recovers_within_poll(self, ticker):
+        ticker.side_effect = [TimeoutError(), SimpleNamespace(quotes={"SLS": quote()})]
+        self.assertIn("SLS", main.YahooQuotes(["SLS"]).fetch())
+
+    @patch("main.Ticker")
+    def test_rate_limit_defers_new_requests(self, ticker):
+        error = OSError("secret URL")
+        error.response = SimpleNamespace(
+            status_code=429, headers={"Retry-After": "120"}
+        )
+        type(ticker.return_value).quotes = PropertyMock(side_effect=error)
+        source = main.YahooQuotes(["SLS"])
+        with self.assertRaisesRegex(main.QuoteError, "HTTP 429"):
+            source.fetch()
+        self.assertEqual(source.retry_after, 120)
+        ticker.assert_called_once()
+
+    def test_retry_after_accepts_http_dates_and_ignores_invalid_headers(self):
+        with patch("main.time.time", return_value=NOW.timestamp()):
+            self.assertEqual(
+                main.retry_after_seconds("Mon, 09 Nov 2026 15:02:00 GMT"), 120
+            )
+            self.assertEqual(main.retry_after_seconds("invalid"), 0)
+
+    @patch("main.Ticker")
+    def test_malformed_batches_have_bounded_retries(self, ticker):
+        ticker.return_value.quotes = "Invalid Crumb"
+        with self.assertRaisesRegex(main.QuoteError, "Yahoo batch"):
+            main.YahooQuotes(["SLS"]).fetch()
+        self.assertEqual(ticker.call_count, 2)
+
+
 class DeliveryTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -162,64 +206,73 @@ class DeliveryTests(unittest.TestCase):
             self.args = main.parse_args([])
         self.args.state_file = self.path
         self.args.stock_symbols = ["AAPL"]
-        self.ticker = SimpleNamespace(price={"AAPL": quote()})
+        self.source = Mock()
+        self.source.fetch.return_value = {"AAPL": quote()}
         self.state = main.AlertState(self.path)
-        self.monitor = main.Monitor(self.args, self.state, self.ticker)
-        self.send = AsyncMock()
-        self.patcher = patch("main.send_email", self.send)
+        self.monitor = main.Monitor(self.args, self.state, self.source)
+        self.send = Mock()
+        self.patcher = patch("main.publish_ntfy", self.send)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
 
     def test_success_suppressed_across_poll_and_process_restart(self):
         self.assertFalse(self.monitor.check(NOW))
         self.assertFalse(self.monitor.check(NOW))
-        restarted = main.Monitor(self.args, main.AlertState(self.path), self.ticker)
+        restarted = main.Monitor(self.args, main.AlertState(self.path), self.source)
         self.assertFalse(restarted.check(NOW))
-        self.assertEqual(self.send.await_count, 2)
+        self.assertEqual(self.send.call_count, 1)
         contents = self.path.read_text()
-        self.assertNotIn("202555", contents)
-        self.assertNotIn("vzwpix", contents)
-        self.assertEqual(len(json.loads(contents)["sent"]), 2)
+        self.assertNotIn(self.args.ntfy_topic, contents)
+        self.assertEqual(len(json.loads(contents)["sent"]), 1)
 
-    def test_failed_recipient_retried_without_resending_successful_recipient(self):
-        self.send.side_effect = [None, OSError("temporary outage"), None]
+    def test_existing_state_does_not_suppress_first_push_to_new_topic(self):
+        self.path.write_text(
+            json.dumps({"day": NOW.date().isoformat(), "sent": ["a" * 64]})
+        )
+        monitor = main.Monitor(self.args, main.AlertState(self.path), self.source)
+        self.assertFalse(monitor.check(NOW))
+        self.send.assert_called_once()
+
+    def test_failed_publish_retries_original_alert_after_retracement(self):
+        self.send.side_effect = [OSError("temporary outage"), None]
         self.assertTrue(self.monitor.check(NOW))
         # Retry the original UP alert even after the price retraces below the threshold.
-        self.ticker.price = {"AAPL": quote(0.01)}
+        self.source.fetch.return_value = {"AAPL": quote(1)}
         self.assertFalse(self.monitor.check(NOW))
-        recipients = [call.args[1] for call in self.send.await_args_list]
-        self.assertEqual(recipients, [*self.args.recipients, self.args.recipients[1]])
-        self.assertEqual(len(self.state.sent), 2)
+        first, retry = self.send.call_args_list
+        self.assertEqual(first, retry)
+        self.assertIn("+10.00%", retry.args[2])
+        self.assertEqual(len(self.state.sent), 1)
 
     def test_pending_send_retried_during_quote_outage(self):
-        self.send.side_effect = [TimeoutError(), TimeoutError(), None, None]
+        self.send.side_effect = [TimeoutError(), None]
         self.assertTrue(self.monitor.check(NOW))
-        broken_ticker = Mock()
-        type(broken_ticker).price = PropertyMock(side_effect=OSError())
-        self.monitor.ticker = broken_ticker
-        self.assertTrue(self.monitor.check(NOW))
-        self.assertEqual(len(self.state.sent), 2)
+        self.source.fetch.side_effect = main.QuoteError("Yahoo batch failed")
+        with self.assertLogs("main", level="ERROR") as logs:
+            self.assertTrue(self.monitor.check(NOW))
+        self.assertEqual(len(logs.output), 1)
+        self.assertEqual(len(self.state.sent), 1)
 
     def test_reversal_and_next_day_are_new_alerts(self):
         self.monitor.check(NOW)
-        self.ticker.price = {"AAPL": quote(-0.10)}
+        self.source.fetch.return_value = {"AAPL": quote(-10)}
         self.monitor.check(NOW)
         tomorrow = NOW + timedelta(days=1)
-        self.ticker.price = {"AAPL": quote(-0.10, tomorrow)}
+        self.source.fetch.return_value = {"AAPL": quote(-10, tomorrow)}
         self.monitor.check(tomorrow)
-        self.assertEqual(self.send.await_count, 6)
-        self.assertEqual(len(self.state.sent), 2)
+        self.assertEqual(self.send.call_count, 3)
+        self.assertEqual(len(self.state.sent), 1)
 
     def test_healthy_symbol_still_processed_when_another_is_invalid(self):
         self.args.stock_symbols = ["BAD", "AAPL"]
         self.assertTrue(self.monitor.check(NOW))
-        self.assertEqual(self.send.await_count, 2)
+        self.assertEqual(self.send.call_count, 1)
 
-    def test_authentication_failure_not_marked_sent(self):
-        self.send.side_effect = aiosmtplib.SMTPAuthenticationError(
-            535, "bad credentials"
+    def test_forbidden_topic_is_a_visible_failure(self):
+        self.send.side_effect = HTTPError(
+            "https://ntfy.sh/", 403, "Forbidden", {}, None
         )
-        with self.assertRaisesRegex(main.MonitorError, "authentication"):
+        with self.assertRaisesRegex(main.MonitorError, "HTTP 403"):
             self.monitor.check(NOW)
         self.assertEqual(self.state.sent, set())
 
@@ -230,36 +283,38 @@ class DeliveryTests(unittest.TestCase):
                 main.AlertState(self.path)
 
 
-class SMTPTests(unittest.TestCase):
-    def test_success_is_not_dependent_on_server_response_wording_and_tls_port(self):
-        with patch.dict(os.environ, ENV, clear=True):
-            args = main.parse_args([])
-        for port in [587, 465]:
-            args.sender_email_host_port = port
-            with patch(
-                "main.aiosmtplib.send",
-                new_callable=AsyncMock,
-                return_value=({}, "Queued"),
-            ) as send:
-                asyncio.run(
-                    main.send_email(args, "me@example.com", "AAPL ALERT UP", "Test")
-                )
-                self.assertEqual(send.call_args.kwargs["use_tls"], port == 465)
-                self.assertEqual(send.call_args.kwargs["start_tls"], port != 465)
-                self.assertEqual(send.call_args.args[0]["To"], "me@example.com")
+class NtfyTests(unittest.TestCase):
+    @patch("main.urlopen")
+    def test_publish_sends_urgent_notification_and_checks_acceptance(self, open_url):
+        topic = "unit-test-topic"
+        receipt = {"id": "abc123", "event": "message", "topic": topic}
+        open_url.return_value = io.BytesIO(json.dumps(receipt).encode())
+        main.publish_ntfy(topic, "SLS ALERT UP", "Price: 30.23")
+        request = open_url.call_args.args[0]
+        self.assertEqual(open_url.call_args.kwargs["timeout"], 15)
+        self.assertEqual(request.full_url, "https://ntfy.sh/")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.get_header("Content-type"), "application/json")
+        self.assertEqual(
+            json.loads(request.data),
+            {
+                "topic": topic,
+                "title": "SLS ALERT UP",
+                "message": "Price: 30.23",
+                "priority": 5,
+            },
+        )
 
-    def test_refused_recipient_raises(self):
-        with patch.dict(os.environ, ENV, clear=True):
-            args = main.parse_args([])
-        with (
-            patch(
-                "main.aiosmtplib.send",
-                new_callable=AsyncMock,
-                return_value=({"me@example.com": "refused"}, "Queued"),
-            ),
-            self.assertRaises(aiosmtplib.SMTPException),
-        ):
-            asyncio.run(main.send_email(args, "me@example.com", "Alert", "Test"))
+    @patch("main.urlopen")
+    def test_invalid_publish_receipt_is_a_failure(self, open_url):
+        for body in [
+            b"not-json",
+            b"{}",
+            b'{"id":"abc","event":"message","topic":"other"}',
+        ]:
+            with self.subTest(body=body), self.assertRaises(ValueError):
+                open_url.return_value = io.BytesIO(body)
+                main.publish_ntfy("unit-test-topic", "SLS ALERT UP", "Price: 30.23")
 
 
 class RuntimeTests(unittest.TestCase):
@@ -275,12 +330,9 @@ class RuntimeTests(unittest.TestCase):
             args = main.parse_args(
                 ["--state_file", str(Path(directory) / "state.json")]
             )
-            with (
-                patch("main.Monitor.check", return_value=True) as check,
-                self.assertRaisesRegex(main.MonitorError, "Five consecutive"),
-            ):
+            ticker.return_value.quotes = {"AAPL": "bad quote"}
+            with self.assertRaisesRegex(main.MonitorError, "Five consecutive"):
                 main.run(args)
-        self.assertEqual(check.call_count, 5)
         self.assertEqual([c.args[0] for c in sleep.call_args_list], [20, 40, 60, 60])
         ticker.return_value.session.close.assert_called_once()
 

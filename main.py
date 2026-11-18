@@ -1,7 +1,6 @@
-"""Monitor US stock moves and submit alerts through an SMTP server."""
+"""Monitor US stock moves and send push notifications through ntfy."""
 
 import argparse
-import asyncio
 import hashlib
 import json
 import logging
@@ -11,25 +10,17 @@ import re
 import time
 from datetime import UTC, datetime
 from datetime import time as clock_time
-from email.message import EmailMessage
+from email.utils import parsedate_to_datetime
+from http.client import HTTPException
 from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
-import aiosmtplib
 from yahooquery import Ticker
 
 LOG = logging.getLogger(__name__)
 EASTERN = ZoneInfo("America/New_York")
-CARRIER_MAP = {
-    "verizon": "vtext.com",
-    "verizon_pics": "vzwpix.com",
-    "tmobile": "tmomail.net",
-    "sprint": "messaging.sprintpcs.com",
-    "at&t": "txt.att.net",
-    "boost": "smsmyboostmobile.com",
-    "cricket": "sms.cricketwireless.net",
-    "uscellular": "email.uscc.net",
-}
 PHASES = {
     "pre": (clock_time(4), clock_time(9, 30), "preMarket"),
     "regular": (clock_time(9, 30), clock_time(16), "regularMarket"),
@@ -43,6 +34,67 @@ class MonitorError(RuntimeError):
 
 class QuoteError(ValueError):
     """A malformed quote or an error response from Yahoo."""
+
+
+def retry_after_seconds(value):
+    if not value:
+        return 0
+    try:
+        if value.isdigit():
+            return int(value)
+        return max(0, parsedate_to_datetime(value).timestamp() - time.time())
+    except (ValueError, TypeError, OverflowError):
+        return 0
+
+
+class YahooQuotes:
+    def __init__(self, symbols):
+        self.symbols = symbols
+        self.ticker = None
+        self.retry_after = 0
+
+    def close(self):
+        if self.ticker is not None:
+            self.ticker.session.close()
+            self.ticker = None
+
+    def fetch(self):
+        self.retry_after = 0
+        for attempt in range(2):
+            try:
+                if self.ticker is None:
+                    self.ticker = Ticker(
+                        self.symbols, timeout=15, raise_for_status=True
+                    )
+                # v7 sends the whole watchlist in one request.
+                quotes = self.ticker.quotes
+                if not isinstance(quotes, dict) or not any(
+                    s in quotes for s in self.symbols
+                ):
+                    raise QuoteError("Missing watchlist in Yahoo batch response")
+                return quotes
+            except (OSError, ValueError, TypeError, KeyError, IndexError) as exc:
+                response = getattr(exc, "response", None)
+                status = getattr(response, "status_code", 0)
+                detail = type(exc).__name__
+                if status:
+                    detail += f" HTTP {status}"
+                if code := getattr(exc, "code", 0):
+                    detail += f" curl {code}"
+                if status in (429, 503):
+                    self.retry_after = retry_after_seconds(
+                        response.headers.get("Retry-After")
+                    )
+                # Reopen once for a dropped connection, expired crumb or malformed batch.
+                if not status or status < 400 or status in (401, 403):
+                    self.close()
+                    if attempt == 0:
+                        LOG.warning(
+                            "Yahoo batch request failed (%s); reconnecting", detail
+                        )
+                        continue
+                # Exception text and request URLs can include the session crumb.
+                raise QuoteError(f"Yahoo batch request failed ({detail})") from None
 
 
 def positive_float(value):
@@ -74,13 +126,11 @@ def parse_args(argv=None):
         required=True,
         help="Fractional threshold: .10 means 10%% in either direction",
     )
-    option("sender_email", required=True)
-    option("sender_email_host", required=True)
-    option("sender_email_host_port", type=int, required=True)
-    option("sender_email_password", required=True)
-    option("carrier", choices=CARRIER_MAP)
-    option("phone_numbers", nargs="+")
-    option("recipient_emails", nargs="+", help="Optional direct email destinations")
+    option(
+        "ntfy_topic",
+        required=True,
+        help="Topic subscribed to in the ntfy app on ntfy.sh",
+    )
     option(
         "yahoo_api_key",
         help="Deprecated compatibility option; yahooquery does not use this key",
@@ -94,29 +144,16 @@ def parse_args(argv=None):
     args.stock_symbols = list(
         dict.fromkeys(s.strip().upper() for s in args.stock_symbols)
     )
-    if len(args.stock_symbols) > 5:
+    if not args.stock_symbols or len(args.stock_symbols) > 5:
         parser.error(
-            "at most five unique symbols are supported; split larger watchlists explicitly"
+            "provide one to five unique symbols; split larger watchlists explicitly"
         )
     if any(not re.fullmatch(r"[A-Z0-9^][A-Z0-9.^=\-]*", s) for s in args.stock_symbols):
         parser.error("stock_symbols contains an invalid symbol")
-    if not 1 <= args.sender_email_host_port <= 65535:
-        parser.error("sender_email_host_port must be between 1 and 65535")
-    if args.phone_numbers and not args.carrier:
-        parser.error("carrier is required when phone_numbers are set")
-    if args.carrier and args.carrier not in CARRIER_MAP:
-        parser.error("carrier must be one of the supported carrier names")
-    recipients = list(args.recipient_emails or [])
-    for phone in args.phone_numbers or []:
-        if not re.fullmatch(r"[0-9]{10}", phone):
-            parser.error("phone_numbers must contain ten digits each")
-        recipients.append(f"{phone}@{CARRIER_MAP[args.carrier]}")
-    args.recipients = list(dict.fromkeys(recipients))
-    if not args.recipients:
-        parser.error("provide phone_numbers with carrier and/or recipient_emails")
-    for address in [args.sender_email, *args.recipients]:
-        if not re.fullmatch(r"[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+", address):
-            parser.error("email addresses must be valid single addresses")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", args.ntfy_topic):
+        parser.error(
+            "ntfy_topic must contain 1–64 letters, digits, underscores or hyphens"
+        )
     return args
 
 
@@ -131,7 +168,7 @@ def market_phase(now):
 
 
 class AlertState:
-    """Daily SMTP acceptances, written atomically without recipient addresses."""
+    """Daily ntfy acceptances, written atomically without the topic name."""
 
     def __init__(self, path):
         self.path = path
@@ -165,8 +202,8 @@ class AlertState:
         return False
 
     @staticmethod
-    def key(symbol, direction, recipient):
-        return hashlib.sha256(f"{symbol}|{direction}|{recipient}".encode()).hexdigest()
+    def key(symbol, direction, topic):
+        return hashlib.sha256(f"{symbol}|{direction}|ntfy:{topic}".encode()).hexdigest()
 
     def record(self, key):
         self.sent.add(key)
@@ -182,7 +219,6 @@ class AlertState:
 
 
 def raw(value):
-    # formatted=True preserves Yahoo's raw epoch timestamps and fractional changes.
     return value.get("raw") if isinstance(value, dict) else value
 
 
@@ -202,7 +238,7 @@ def quote_alert(quote, phase, threshold, now):
         if phase != "regular":
             return None
         raise QuoteError("Missing regular-market quote fields")
-    change, price, timestamp = values
+    percent, price, timestamp = values
     if (
         any(
             isinstance(v, bool)
@@ -225,57 +261,45 @@ def quote_alert(quote, phase, threshold, now):
     ):
         # Reject yesterday's pre/post values and closed-market holiday quotes.
         return None
+    # The v7 batch endpoint reports percentage points, e.g. 15.0 means +15%.
+    change = percent / 100
     if abs(change) < threshold:
         return None
     direction = "UP" if change > 0 else "DOWN"
-    return direction, f"Price: {price:g}, Change: {change:+.2%} ({phase})"
+    return (
+        direction,
+        f"Price: {price:g}, Change: {change:+.2%} ({phase}, {quoted_at:%H:%M:%S %Z})",
+    )
 
 
-async def send_email(args, recipient, subject, body):
-    message = EmailMessage()
-    message["From"], message["To"], message["Subject"] = (
-        args.sender_email,
-        recipient,
-        subject,
+def publish_ntfy(topic, title, body):
+    request = Request(
+        "https://ntfy.sh/",
+        data=json.dumps(
+            {"topic": topic, "title": title, "message": body, "priority": 5}
+        ).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
     )
-    message.set_content(body)
-    refused, _ = await asyncio.wait_for(
-        aiosmtplib.send(
-            message,
-            username=args.sender_email,
-            password=args.sender_email_password,
-            hostname=args.sender_email_host,
-            port=args.sender_email_host_port,
-            use_tls=args.sender_email_host_port == 465,
-            start_tls=args.sender_email_host_port != 465,
-            timeout=30,
-        ),
-        timeout=60,
-    )
-    # Success is determined by the library's exception/refusal contract, not "OK" text.
-    if refused:
-        raise aiosmtplib.SMTPException("SMTP refused a recipient")
+    with urlopen(request, timeout=15) as response:
+        receipt = json.load(response)
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("event") != "message"
+        or receipt.get("topic") != topic
+        or not isinstance(receipt.get("id"), str)
+        or not receipt["id"]
+    ):
+        raise ValueError("Invalid publish receipt from ntfy")
 
 
 class Monitor:
-    def __init__(self, args, state, ticker):
-        self.args, self.state, self.ticker = args, state, ticker
+    def __init__(self, args, state, source):
+        self.args, self.state, self.source = args, state, source
         self.pending = {}
 
-    def check(self, now):
-        if self.state.set_day(now):
-            self.pending.clear()
-        phase = market_phase(now)
-        if phase is None:
-            return False
+    def queue_alerts(self, quotes, phase, now):
         errors = False
-        try:
-            quotes = self.ticker.price
-            if not isinstance(quotes, dict):
-                raise QuoteError("Yahoo returned an invalid response")
-        except (OSError, ValueError, TypeError, KeyError, IndexError) as exc:
-            LOG.error("Quote request failed (%s)", type(exc).__name__)
-            quotes, errors = {}, True
         for symbol in self.args.stock_symbols:
             try:
                 alert = quote_alert(
@@ -288,32 +312,43 @@ class Monitor:
             if alert is None:
                 continue
             direction, body = alert
-            for recipient in self.args.recipients:
-                key = self.state.key(symbol, direction, recipient)
-                if key not in self.state.sent:
-                    self.pending.setdefault(
-                        key,
-                        (recipient, f"{symbol} ALERT {direction}", f"{symbol} {body}"),
-                    )
+            key = self.state.key(symbol, direction, self.args.ntfy_topic)
+            if key not in self.state.sent:
+                self.pending.setdefault(key, (f"{symbol} ALERT {direction}", body))
+        return errors
+
+    def check(self, now):
+        if self.state.set_day(now):
+            self.pending.clear()
+        phase = market_phase(now)
+        if phase is None:
+            return False
+        try:
+            errors = self.queue_alerts(self.source.fetch(), phase, now)
+        except QuoteError as exc:
+            LOG.error("%s", exc)
+            errors = True
 
         # Retry the original alert even if the price retraces or the next quote request fails.
-        for key, (recipient, subject, body) in list(self.pending.items()):
+        for key, (title, body) in list(self.pending.items()):
             try:
-                asyncio.run(send_email(self.args, recipient, subject, body))
-            except aiosmtplib.SMTPAuthenticationError as exc:
-                raise MonitorError(
-                    "SMTP authentication failed; check the sender credentials"
-                ) from exc
-            except (aiosmtplib.SMTPException, OSError, TimeoutError) as exc:
-                # SMTP error text may contain addresses; log only its type.
-                LOG.error(
-                    "Alert submission failed (%s); will retry", type(exc).__name__
-                )
+                publish_ntfy(self.args.ntfy_topic, title, body)
+            except HTTPError as exc:
+                exc.close()
+                if 400 <= exc.code < 500 and exc.code not in (408, 425, 429):
+                    raise MonitorError(
+                        f"ntfy rejected the publish (HTTP {exc.code}); check NTFY_TOPIC"
+                    ) from None
+                LOG.error("ntfy publish failed (HTTP %d); will retry", exc.code)
+                errors = True
+                continue
+            except (OSError, HTTPException, ValueError) as exc:
+                LOG.error("ntfy publish failed (%s); will retry", type(exc).__name__)
                 errors = True
                 continue
             self.state.record(key)
             del self.pending[key]
-            LOG.info("SMTP accepted %s (phone delivery is not confirmed)", subject)
+            LOG.info("ntfy accepted %s (%s)", title, body)
         return errors
 
 
@@ -334,7 +369,9 @@ def run(args):
         if args.max_runtime_seconds
         else math.inf
     )
-    ticker, monitor, failures = None, None, 0
+    source = YahooQuotes(args.stock_symbols)
+    monitor = Monitor(args, state, source)
+    failures = 0
     try:
         while time.monotonic() < deadline:
             now = datetime.now(EASTERN)
@@ -345,10 +382,6 @@ def run(args):
             if market_phase(now) is None:
                 delay = 60
             else:
-                if ticker is None:
-                    # Reuse cookies/connections; constructing a Ticker per symbol per poll is wasteful.
-                    ticker = Ticker(args.stock_symbols, formatted=True, timeout=15)
-                    monitor = Monitor(args, state, ticker)
                 if monitor.check(now):
                     failures += 1
                     if failures >= 5:
@@ -357,11 +390,15 @@ def run(args):
                         )
                 else:
                     failures = 0
-                delay = min(args.poll_interval * 2**failures, 60)
+                delay = max(
+                    min(args.poll_interval * 2**failures, 60), source.retry_after
+                )
+                if args.exit_at_market_close:
+                    close = now.replace(hour=20, minute=0, second=0, microsecond=0)
+                    delay = min(delay, max(0, close.timestamp() - time.time()))
             time.sleep(max(0, min(delay, deadline - time.monotonic())))
     finally:
-        if ticker is not None:
-            ticker.session.close()
+        source.close()
     if failures:
         raise MonitorError(
             "Monitoring ended with unresolved quote or delivery failures"
